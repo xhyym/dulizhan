@@ -1,0 +1,36 @@
+# 开发环境配置
+
+spring:
+  # 数据源配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://152.136.123.201:3306/indie_station?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: mysql_Xdwzfi
+
+  # Redis 配置
+  data:
+    redis:
+      host: 152.136.123.201
+      port: 6379
+      password: bkcw123456
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+# 文件上传路径 (本地备用)
+file:
+  upload:
+    path: ./uploads/
+    url-prefix: http://localhost:8080/uploads/
+
+# Cloudflare R2 配置 (S3 兼容)
+r2:
+  endpoint: https://c253d43d08e982116d109d99e3586e6b.r2.cloudflarestorage.com
+  access-key-id: c09dd36a4f17e644277bebdb12b499d9
+  secret-access-key: 04aaa3e89a46e0c3e631c12413df0d520ebff665a82d9e470270764cb392171e
+  bucket: dulizhan
+  public-url: https://pub-baff4f8d45054a8fb57ca8097da74315.r2.dev
