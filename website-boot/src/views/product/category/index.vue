@@ -3,13 +3,13 @@
   <div class="category-page art-full-height">
     <!-- 搜索栏 -->
     <ElCard class="art-search-card">
-      <ElForm :model="searchForm" inline>
+      <ElForm :model="searchForm" inline class="search-form-compact">
         <ElFormItem label="分类名称">
-          <ElInput v-model="searchForm.name" placeholder="请输入分类名称" clearable style="width: 200px"
+          <ElInput v-model="searchForm.name" placeholder="请输入分类名称" clearable style="width: 180px"
             @keyup.enter="loadData" />
         </ElFormItem>
         <ElFormItem label="状态">
-          <ElSelect v-model="searchForm.status" placeholder="全部" clearable style="width: 120px">
+          <ElSelect v-model="searchForm.status" placeholder="全部" clearable style="width: 100px">
             <ElOption label="正常" :value="1" />
             <ElOption label="禁用" :value="0" />
           </ElSelect>
@@ -20,8 +20,6 @@
         </ElFormItem>
       </ElForm>
     </ElCard>
-
-    <ElDivider style="margin: 0" />
 
     <!-- 表格 -->
     <ElCard class="art-table-card">
@@ -205,3 +203,28 @@ async function handleDelete(row: any) {
 
 onMounted(() => loadData())
 </script>
+
+<style scoped lang="scss">
+.search-form-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 0;
+
+  :deep(.el-form-item) {
+    margin-bottom: 8px;
+  }
+
+  :deep(.el-input__wrapper) {
+    min-height: 32px;
+  }
+
+  :deep(.el-select__wrapper) {
+    min-height: 32px;
+  }
+
+  :deep(.el-button) {
+    height: 32px;
+    padding: 0 15px;
+  }
+}
+</style>

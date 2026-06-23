@@ -31,9 +31,12 @@ public class ProductController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Integer status) {
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String skuCode,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime) {
 
-        IPage<Product> page = productService.getProductPage(current, size, name, categoryId, status);
+        IPage<Product> page = productService.getProductPage(current, size, name, categoryId, status, skuCode, startTime, endTime);
         PageResult<Product> result = new PageResult<>(
                 page.getRecords(), page.getCurrent(), page.getSize(), page.getTotal()
         );

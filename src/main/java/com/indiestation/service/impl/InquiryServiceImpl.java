@@ -5,11 +5,16 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.indiestation.entity.Inquiry;
+import com.indiestation.entity.InquiryItem;
 import com.indiestation.exception.BusinessException;
+import com.indiestation.mapper.InquiryItemMapper;
 import com.indiestation.mapper.InquiryMapper;
 import com.indiestation.service.InquiryService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 /**
  * 询盘服务实现
@@ -17,7 +22,10 @@ import org.springframework.util.StringUtils;
  * @author IndieStation
  */
 @Service
+@RequiredArgsConstructor
 public class InquiryServiceImpl extends ServiceImpl<InquiryMapper, Inquiry> implements InquiryService {
+
+    private final InquiryItemMapper inquiryItemMapper;
 
     @Override
     public IPage<Inquiry> getInquiryPage(int current, int size, String inquiryNo,
@@ -41,6 +49,23 @@ public class InquiryServiceImpl extends ServiceImpl<InquiryMapper, Inquiry> impl
     @Override
     public Inquiry getInquiryDetail(Long id) {
         return getById(id);
+    }
+
+    @Override
+    public List<InquiryItem> getInquiryItems(Long inquiryId) {
+        return inquiryItemMapper.selectList(
+                new LambdaQueryWrapper<InquiryItem>()
+                        .eq(InquiryItem::getInquiryId, inquiryId)
+        );
+    }
+
+    @Override
+    public List<Inquiry> getInquiriesByUserId(Long userId) {
+        return list(
+                new LambdaQueryWrapper<Inquiry>()
+                        .eq(Inquiry::getUserId, userId)
+                        .orderByDesc(Inquiry::getCreateTime)
+        );
     }
 
     @Override

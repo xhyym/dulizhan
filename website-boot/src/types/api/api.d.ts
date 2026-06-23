@@ -231,7 +231,25 @@ declare namespace Api {
       name: string
       categoryId: number
       status: number
+      skuCode: string
+      startTime: string
+      endTime: string
     }>
+  }
+
+  /** 客户管理类型 */
+  namespace User {
+    /** 客户列表项 */
+    interface UserItem {
+      id: number
+      username: string
+      email: string
+      whatsapp: string
+      avatar: string
+      status: number
+      createTime: string
+      updateTime: string
+    }
   }
 
   /** 询盘管理类型 */

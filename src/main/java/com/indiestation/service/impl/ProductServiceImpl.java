@@ -18,6 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -33,7 +37,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private final ProductSkuMapper productSkuMapper;
 
     @Override
-    public IPage<Product> getProductPage(int current, int size, String name, Long categoryId, Integer status) {
+    public IPage<Product> getProductPage(int current, int size, String name, Long categoryId, Integer status, String skuCode, String startTime, String endTime) {
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
 
         if (StringUtils.hasText(name)) {
@@ -44,6 +48,17 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         if (status != null) {
             wrapper.eq(Product::getStatus, status);
+        }
+        if (StringUtils.hasText(skuCode)) {
+            wrapper.like(Product::getSkuCode, skuCode);
+        }
+        if (StringUtils.hasText(startTime)) {
+            LocalDateTime start = LocalDate.parse(startTime, DateTimeFormatter.ISO_LOCAL_DATE).atStartOfDay();
+            wrapper.ge(Product::getCreateTime, start);
+        }
+        if (StringUtils.hasText(endTime)) {
+            LocalDateTime end = LocalDate.parse(endTime, DateTimeFormatter.ISO_LOCAL_DATE).atTime(LocalTime.MAX);
+            wrapper.le(Product::getCreateTime, end);
         }
 
         wrapper.orderByDesc(Product::getCreateTime);

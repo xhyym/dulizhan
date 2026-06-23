@@ -3,7 +3,7 @@
   <div class="inquiry-page art-full-height">
     <!-- 搜索栏 -->
     <ElCard class="art-search-card">
-      <ElForm :model="searchForm" inline>
+      <ElForm :model="searchForm" inline class="search-form-compact">
         <ElFormItem label="询盘编号">
           <ElInput v-model="searchForm.inquiryNo" placeholder="请输入询盘编号" clearable style="width: 180px"
             @keyup.enter="loadData" />
@@ -27,8 +27,6 @@
       </ElForm>
     </ElCard>
 
-    <ElDivider style="margin: 0" />
-
     <!-- 表格 -->
     <ElCard class="art-table-card">
       <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="loadData" />
@@ -47,14 +45,13 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElTag } from 'element-plus'
+import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
-import { fetchGetInquiryList } from '@/api/inquiry'
+import { fetchGetInquiryList, fetchUpdateInquiryStatus, fetchGenerateInquiryPdf } from '@/api/inquiry'
+import FileSaver from 'file-saver'
 
 defineOptions({ name: 'InquiryList' })
 
-const router = useRouter()
 const loading = ref(false)
 const tableData = ref<any[]>([])
 
@@ -95,13 +92,31 @@ const { columns, columnChecks } = useTableColumns(() => [
   {
     prop: 'operation',
     label: '操作',
-    width: 120,
+    width: 200,
     fixed: 'right',
-    formatter: (row: any) =>
-      h('button', {
-        class: 'el-button el-button--primary is-link',
-        onClick: () => goDetail(row.id)
-      }, '查看')
+    formatter: (row: any) => {
+      const buttons = []
+
+      // 生成转换单按钮
+      buttons.push(
+        h('button', {
+          class: 'el-button el-button--primary is-link',
+          onClick: () => handleGeneratePdf(row)
+        }, '生成转换单')
+      )
+
+      // 取消询盘按钮（只有待处理和已联系状态可以取消）
+      if (row.status === 0 || row.status === 1) {
+        buttons.push(
+          h('button', {
+            class: 'el-button el-button--danger is-link',
+            onClick: () => handleCancel(row)
+          }, '取消')
+        )
+      }
+
+      return h('div', buttons)
+    }
   }
 ])
 
@@ -137,9 +152,50 @@ function resetSearch() {
   loadData()
 }
 
-function goDetail(id: number) {
-  router.push({ path: '/inquiry/detail', query: { id: String(id) } })
+// 取消询盘
+async function handleCancel(row: any) {
+  await ElMessageBox.confirm(`确定取消询盘「${row.inquiryNo}」吗？`, '提示', { type: 'warning' })
+  await fetchUpdateInquiryStatus(row.id, { status: 3 })
+  ElMessage.success('已取消')
+  loadData()
+}
+
+// 生成转换单 PDF
+async function handleGeneratePdf(row: any) {
+  try {
+    const response = await fetchGenerateInquiryPdf(row.id)
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    FileSaver.saveAs(blob, `询盘转换单_${row.inquiryNo}.pdf`)
+    ElMessage.success('PDF 已下载')
+  } catch (error: any) {
+    ElMessage.error(error.message || '生成PDF失败')
+  }
 }
 
 onMounted(() => loadData())
 </script>
+
+<style scoped lang="scss">
+.search-form-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 0;
+
+  :deep(.el-form-item) {
+    margin-bottom: 8px;
+  }
+
+  :deep(.el-input__wrapper) {
+    min-height: 32px;
+  }
+
+  :deep(.el-select__wrapper) {
+    min-height: 32px;
+  }
+
+  :deep(.el-button) {
+    height: 32px;
+    padding: 0 15px;
+  }
+}
+</style>

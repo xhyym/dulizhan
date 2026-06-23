@@ -15,7 +15,7 @@ public interface ProductService extends IService<Product> {
     /**
      * 分页查询商品
      */
-    IPage<Product> getProductPage(int current, int size, String name, Long categoryId, Integer status);
+    IPage<Product> getProductPage(int current, int size, String name, Long categoryId, Integer status, String skuCode, String startTime, String endTime);
 
     /**
      * 获取商品详情 (含副图、SKU)

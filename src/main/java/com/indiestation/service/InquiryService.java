@@ -3,6 +3,9 @@ package com.indiestation.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.indiestation.entity.Inquiry;
+import com.indiestation.entity.InquiryItem;
+
+import java.util.List;
 
 /**
  * 询盘服务
@@ -21,6 +24,16 @@ public interface InquiryService extends IService<Inquiry> {
      * 获取询盘详情 (含商品明细)
      */
     Inquiry getInquiryDetail(Long id);
+
+    /**
+     * 获取询盘商品明细
+     */
+    List<InquiryItem> getInquiryItems(Long inquiryId);
+
+    /**
+     * 根据用户ID获取询盘列表
+     */
+    List<Inquiry> getInquiriesByUserId(Long userId);
 
     /**
      * 更新询盘状态

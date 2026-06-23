@@ -234,44 +234,44 @@ INSERT INTO `t_menu` (`id`, `parent_id`, `path`, `name`, `component`, `title`, `
 -- 菜单数据 (系统管理)
 INSERT INTO `t_menu` (`id`, `parent_id`, `path`, `name`, `component`, `title`, `icon`, `sort`, `type`, `keep_alive`) VALUES
 (3, 0, '/system', 'System', '/index/index', 'menus.system.title', 'ri:settings-3-line', 99, 'M', 1),
-(4, 3, 'user', 'User', '/system/user', 'menus.system.user', NULL, 1, 'C', 1),
-(5, 3, 'role', 'Role', '/system/role', 'menus.system.role', NULL, 2, 'C', 1),
-(6, 3, 'menu', 'Menus', '/system/menu', 'menus.system.menu', NULL, 3, 'C', 1),
-(7, 3, 'user-center', 'UserCenter', '/system/user-center', 'menus.system.userCenter', NULL, 4, 'C', 1);
+(6, 3, 'menu', 'Menus', '/system/menu', 'menus.system.menu', NULL, 1, 'C', 1),
+(7, 3, 'user-center', 'UserCenter', '/system/user-center', 'menus.system.userCenter', NULL, 2, 'C', 1);
 
 -- 菜单数据 (商品管理)
 INSERT INTO `t_menu` (`id`, `parent_id`, `path`, `name`, `component`, `title`, `icon`, `sort`, `type`, `keep_alive`) VALUES
 (10, 0, '/product', 'Product', '/index/index', 'menus.product.title', 'ri:shopping-bag-line', 2, 'M', 1),
 (11, 10, 'category', 'Category', '/product/category', 'menus.product.category', NULL, 1, 'C', 1),
-(12, 10, 'list', 'ProductList', '/product/list', 'menus.product.list', NULL, 2, 'C', 1),
-(13, 10, 'detail', 'ProductDetail', '/product/detail', 'menus.product.detail', NULL, 3, 'C', 1);
+(12, 10, 'list', 'ProductList', '/product/list', 'menus.product.list', NULL, 2, 'C', 1);
 
 -- 菜单数据 (询盘管理)
 INSERT INTO `t_menu` (`id`, `parent_id`, `path`, `name`, `component`, `title`, `icon`, `sort`, `type`, `keep_alive`) VALUES
 (20, 0, '/inquiry', 'Inquiry', '/index/index', 'menus.inquiry.title', 'ri:file-list-3-line', 3, 'M', 1),
 (21, 20, 'list', 'InquiryList', '/inquiry/list', 'menus.inquiry.list', NULL, 1, 'C', 1),
-(22, 20, 'detail', 'InquiryDetail', '/inquiry/detail', 'menus.inquiry.detail', NULL, 2, 'C', 1);
+(23, 20, 'customer', 'CustomerList', '/inquiry/customer', 'menus.inquiry.customer', NULL, 2, 'C', 1);
 
 -- 菜单数据 (系统设置)
 INSERT INTO `t_menu` (`id`, `parent_id`, `path`, `name`, `component`, `title`, `icon`, `sort`, `type`, `keep_alive`) VALUES
 (30, 0, '/site-config', 'SiteConfig', '/index/index', 'menus.siteConfig.title', 'ri:global-line', 4, 'M', 1),
 (31, 30, 'basic', 'SiteBasic', '/site-config/basic', 'menus.siteConfig.basic', NULL, 1, 'C', 1),
 (32, 30, 'banner', 'SiteBanner', '/site-config/banner', 'menus.siteConfig.banner', NULL, 2, 'C', 1),
-(33, 30, 'footer', 'SiteFooter', '/site-config/footer', 'menus.siteConfig.footer', NULL, 3, 'C', 1);
+(33, 30, 'footer', 'SiteFooter', '/site-config/footer', 'menus.siteConfig.footer', NULL, 3, 'C', 1),
+(34, 30, 'seo', 'SiteSeo', '/site-config/seo', 'menus.siteConfig.seo', NULL, 4, 'C', 1),
+(35, 30, 'analytics', 'SiteAnalytics', '/site-config/analytics', 'menus.siteConfig.analytics', NULL, 5, 'C', 1),
+(36, 30, 'email', 'SiteEmail', '/site-config/email', 'menus.siteConfig.email', NULL, 6, 'C', 1);
 
 -- 角色-菜单关联 (超级管理员拥有所有菜单)
 INSERT INTO `t_role_menu` (`role_code`, `menu_id`) VALUES
-('R_SUPER', 1), ('R_SUPER', 2), ('R_SUPER', 3), ('R_SUPER', 4), ('R_SUPER', 5), ('R_SUPER', 6), ('R_SUPER', 7),
-('R_SUPER', 10), ('R_SUPER', 11), ('R_SUPER', 12), ('R_SUPER', 13),
-('R_SUPER', 20), ('R_SUPER', 21), ('R_SUPER', 22),
-('R_SUPER', 30), ('R_SUPER', 31), ('R_SUPER', 32), ('R_SUPER', 33);
+('R_SUPER', 1), ('R_SUPER', 2), ('R_SUPER', 3), ('R_SUPER', 6), ('R_SUPER', 7),
+('R_SUPER', 10), ('R_SUPER', 11), ('R_SUPER', 12),
+('R_SUPER', 20), ('R_SUPER', 21), ('R_SUPER', 23),
+('R_SUPER', 30), ('R_SUPER', 31), ('R_SUPER', 32), ('R_SUPER', 33), ('R_SUPER', 34), ('R_SUPER', 35), ('R_SUPER', 36);
 
 -- 角色-菜单关联 (普通管理员 - 不含系统管理和菜单管理)
 INSERT INTO `t_role_menu` (`role_code`, `menu_id`) VALUES
 ('R_ADMIN', 1), ('R_ADMIN', 2),
-('R_ADMIN', 10), ('R_ADMIN', 11), ('R_ADMIN', 12), ('R_ADMIN', 13),
-('R_ADMIN', 20), ('R_ADMIN', 21), ('R_ADMIN', 22),
-('R_ADMIN', 30), ('R_ADMIN', 31), ('R_ADMIN', 32), ('R_ADMIN', 33);
+('R_ADMIN', 10), ('R_ADMIN', 11), ('R_ADMIN', 12),
+('R_ADMIN', 20), ('R_ADMIN', 21), ('R_ADMIN', 23),
+('R_ADMIN', 30), ('R_ADMIN', 31), ('R_ADMIN', 32), ('R_ADMIN', 33), ('R_ADMIN', 34), ('R_ADMIN', 35), ('R_ADMIN', 36);
 
 -- 系统配置初始数据
 INSERT INTO `t_site_config` (`config_key`, `config_value`, `description`) VALUES

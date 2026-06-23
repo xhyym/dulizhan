@@ -23,18 +23,10 @@ export function fetchUpdateInquiryStatus(id: number, data: { status: number; adm
   })
 }
 
-/** 导出询盘 Excel */
-export function fetchExportInquiryExcel() {
+/** 生成询盘转换单 PDF */
+export function fetchGenerateInquiryPdf(id: number) {
   return request.get({
-    url: '/api/admin/inquiries/export/excel',
-    responseType: 'blob' as any
-  })
-}
-
-/** 导出询盘 PDF */
-export function fetchExportInquiryPdf() {
-  return request.get({
-    url: '/api/admin/inquiries/export/pdf',
+    url: `/api/admin/inquiries/${id}/pdf`,
     responseType: 'blob' as any
   })
 }

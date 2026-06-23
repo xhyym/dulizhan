@@ -30,6 +30,11 @@ public class SiteConfigServiceImpl extends ServiceImpl<SiteConfigMapper, SiteCon
     }
 
     @Override
+    public Map<String, String> getConfigMap() {
+        return getAllConfig();
+    }
+
+    @Override
     public void updateConfig(Map<String, String> configMap) {
         for (Map.Entry<String, String> entry : configMap.entrySet()) {
             SiteConfig existing = getOne(

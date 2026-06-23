@@ -273,13 +273,17 @@
     "inquiry": {
       "title": "询盘管理",
       "list": "询盘列表",
-      "detail": "询盘详情"
+      "detail": "询盘详情",
+      "customer": "客户管理"
     },
     "siteConfig": {
       "title": "系统设置",
       "basic": "基本信息",
       "banner": "轮播图管理",
-      "footer": "Footer设置"
+      "footer": "Footer设置",
+      "seo": "SEO设置",
+      "analytics": "统计代码",
+      "email": "邮件配置"
     }
   },
   "table": {

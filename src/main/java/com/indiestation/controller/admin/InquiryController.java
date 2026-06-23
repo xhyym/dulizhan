@@ -4,10 +4,15 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.indiestation.common.PageResult;
 import com.indiestation.common.Result;
 import com.indiestation.entity.Inquiry;
+import com.indiestation.entity.InquiryItem;
 import com.indiestation.service.InquiryService;
+import com.indiestation.service.PdfService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,6 +26,7 @@ import java.util.Map;
 public class InquiryController {
 
     private final InquiryService inquiryService;
+    private final PdfService pdfService;
 
     /**
      * 询盘分页列表
@@ -61,20 +67,22 @@ public class InquiryController {
     }
 
     /**
-     * 导出 Excel (TODO)
+     * 生成转换单 PDF
      */
-    @GetMapping("/export/excel")
-    public Result<Void> exportExcel() {
-        // TODO: 实现 Excel 导出
-        return Result.error("功能开发中");
-    }
+    @GetMapping("/{id}/pdf")
+    public void generatePdf(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        Inquiry inquiry = inquiryService.getInquiryDetail(id);
+        if (inquiry == null) {
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":404,\"message\":\"询盘不存在\"}");
+            return;
+        }
 
-    /**
-     * 导出 PDF (TODO)
-     */
-    @GetMapping("/export/pdf")
-    public Result<Void> exportPdf() {
-        // TODO: 实现 PDF 导出
-        return Result.error("功能开发中");
+        List<InquiryItem> items = inquiryService.getInquiryItems(id);
+
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=inquiry_" + inquiry.getInquiryNo() + ".pdf");
+
+        pdfService.generateInquiryPdf(inquiry, items, response.getOutputStream());
     }
 }
