@@ -1,41 +1,51 @@
 <!-- 工作台页面 -->
 <template>
-  <div>
-    <CardList></CardList>
+  <div class="console-page">
+    <!-- 统计卡片 -->
+    <CardList :data="dashboardData" />
 
+    <!-- 图表区域 -->
     <ElRow :gutter="20">
-      <ElCol :sm="24" :md="12" :lg="10">
-        <ActiveUser />
+      <ElCol :sm="24" :lg="16">
+        <VisitTrend :data="dashboardData?.visitTrend ?? []" />
       </ElCol>
-      <ElCol :sm="24" :md="12" :lg="14">
-        <SalesOverview />
+      <ElCol :sm="24" :lg="8">
+        <DeviceChart :data="dashboardData?.deviceDistribution ?? []" />
       </ElCol>
     </ElRow>
 
     <ElRow :gutter="20">
-      <ElCol :sm="24" :md="24" :lg="12">
-        <NewUser />
+      <ElCol :sm="24" :lg="12">
+        <CountryChart :data="dashboardData?.countryTop10 ?? []" />
       </ElCol>
-      <ElCol :sm="24" :md="12" :lg="6">
-        <Dynamic />
-      </ElCol>
-      <ElCol :sm="24" :md="12" :lg="6">
-        <TodoList />
+      <ElCol :sm="24" :lg="12">
+        <RecentInquiries :data="dashboardData?.recentInquiries ?? []" />
       </ElCol>
     </ElRow>
-
-    <AboutProject />
   </div>
 </template>
 
 <script setup lang="ts">
+  import { fetchGetDashboard } from '@/api/dashboard'
   import CardList from './modules/card-list.vue'
-  import ActiveUser from './modules/active-user.vue'
-  import SalesOverview from './modules/sales-overview.vue'
-  import NewUser from './modules/new-user.vue'
-  import Dynamic from './modules/dynamic-stats.vue'
-  import TodoList from './modules/todo-list.vue'
-  import AboutProject from './modules/about-project.vue'
+  import VisitTrend from './modules/visit-trend.vue'
+  import CountryChart from './modules/country-chart.vue'
+  import DeviceChart from './modules/device-chart.vue'
+  import RecentInquiries from './modules/recent-inquiries.vue'
 
   defineOptions({ name: 'Console' })
+
+  const dashboardData = ref<Api.Dashboard.DashboardVO | null>(null)
+
+  async function loadData() {
+    try {
+      dashboardData.value = await fetchGetDashboard()
+    } catch (error) {
+      console.error('加载仪表盘数据失败', error)
+    }
+  }
+
+  onMounted(() => {
+    loadData()
+  })
 </script>

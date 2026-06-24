@@ -3,6 +3,8 @@ package com.indiestation;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 独立站后台管理系统启动类
@@ -11,6 +13,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 @MapperScan("com.indiestation.mapper")
+@EnableAsync
+@EnableScheduling
 public class IndieStationApplication {
 
     public static void main(String[] args) {

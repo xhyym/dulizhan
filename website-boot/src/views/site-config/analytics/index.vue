@@ -73,7 +73,7 @@ const formData = ref({
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await fetchGetSiteConfig()
+    const data = await fetchGetSiteConfig()
     if (data?.analytics_config) {
       try {
         const config = JSON.parse(data.analytics_config)

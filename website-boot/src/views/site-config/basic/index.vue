@@ -51,7 +51,7 @@ const formData = ref({
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await fetchGetSiteConfig()
+    const data = await fetchGetSiteConfig()
     if (data) {
       Object.keys(formData.value).forEach(key => {
         if (data[key]) {

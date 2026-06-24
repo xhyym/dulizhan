@@ -132,7 +132,7 @@ const { columns, columnChecks } = useTableColumns(() => [
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await fetchGetUserList({
+    const data = await fetchGetUserList({
       current: pagination.value.current,
       size: pagination.value.size,
       ...searchForm.value
@@ -166,7 +166,7 @@ async function showDetail(row: any) {
   dialogVisible.value = true
   inquiriesLoading.value = true
   try {
-    const { data } = await fetchGetUserInquiries(row.id)
+    const data = await fetchGetUserInquiries(row.id)
     customerInquiries.value = data || []
   } finally {
     inquiriesLoading.value = false

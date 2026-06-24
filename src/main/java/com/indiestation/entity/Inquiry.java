@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 询盘订单实体
@@ -50,4 +51,8 @@ public class Inquiry {
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    /** 询盘明细 (非数据库字段) */
+    @TableField(exist = false)
+    private List<InquiryItem> items;
 }

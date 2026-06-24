@@ -19,15 +19,18 @@ export async function uploadToR2(uploadUrl: string, file: File): Promise<Respons
   })
 }
 
-/** 一键上传：获取预签名URL + 直传R2，返回文件访问地址 */
+/** 上传图片到 R2 */
 export async function uploadImage(file: File): Promise<string> {
-  // 1. 获取预签名 URL
-  const { data } = await fetchGetPresignedUrl(file.name, file.type)
-  // 2. 直传到 R2
-  const response = await uploadToR2(data.uploadUrl, file)
-  if (!response.ok) {
-    throw new Error('上传失败: ' + response.status)
+  const presignedUrl = await fetchGetPresignedUrl(file.name, file.type)
+
+  if (!presignedUrl?.uploadUrl) {
+    throw new Error('获取预签名 URL 失败')
   }
-  // 3. 返回文件访问 URL
-  return data.fileUrl
+
+  const response = await uploadToR2(presignedUrl.uploadUrl, file)
+  if (!response.ok) {
+    throw new Error(`R2 上传失败: ${response.status}`)
+  }
+
+  return presignedUrl.fileUrl
 }

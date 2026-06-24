@@ -39,8 +39,11 @@ public class Product {
     /** 主图URL */
     private String mainImage;
 
-    /** 海报图URL */
+    /** 海报图URL (横向Banner) */
     private String posterImage;
+
+    /** 详情长图URL */
+    private String detailImage;
 
     /** 状态: 0-下架, 1-上架 */
     private Integer status;

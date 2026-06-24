@@ -187,6 +187,7 @@ declare namespace Api {
       skuCode: string
       mainImage: string
       posterImage: string
+      detailImage: string
       status: number
       sort: number
       images: string[]
@@ -215,6 +216,7 @@ declare namespace Api {
       skuCode?: string
       mainImage?: string
       posterImage?: string
+      detailImage?: string
       status?: number
       sort?: number
       images?: string[]
@@ -296,6 +298,35 @@ declare namespace Api {
       uploadUrl: string
       fileUrl: string
       key: string
+    }
+  }
+
+  /** 仪表盘类型 */
+  namespace Dashboard {
+    /** 仪表盘数据 */
+    interface DashboardVO {
+      todayPv: number
+      todayUv: number
+      productCount: number
+      pendingInquiryCount: number
+      monthNewCustomerCount: number
+      monthInquiryCount: number
+      visitTrend: Record<string, any>[]
+      countryTop10: Record<string, any>[]
+      deviceDistribution: Record<string, any>[]
+      recentInquiries: Record<string, any>[]
+    }
+
+    /** 访客统计详情 */
+    interface VisitorStatsVO {
+      totalPv: number
+      totalUv: number
+      dailyTrend: Record<string, any>[]
+      countryTop10: Record<string, any>[]
+      cityTop10: Record<string, any>[]
+      deviceDistribution: Record<string, any>[]
+      topPages: Record<string, any>[]
+      hourlyHeatmap: Record<string, any>[]
     }
   }
 }

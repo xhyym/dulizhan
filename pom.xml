@@ -114,6 +114,13 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- MaxMind GeoIP2 (IP地理位置解析) -->
+        <dependency>
+            <groupId>com.maxmind.geoip2</groupId>
+            <artifactId>geoip2</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+
         <!-- AWS S3 SDK (Cloudflare R2 兼容) -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

@@ -33,17 +33,15 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         Map<Long, List<Category>> groupByParent = allCategories.stream()
                 .collect(Collectors.groupingBy(Category::getParentId));
 
-        List<Category> tree = new ArrayList<>();
-        buildTree(tree, groupByParent, 0L);
-        return tree;
+        return buildTree(groupByParent, 0L);
     }
 
-    private void buildTree(List<Category> result, Map<Long, List<Category>> groupByParent, Long parentId) {
+    private List<Category> buildTree(Map<Long, List<Category>> groupByParent, Long parentId) {
         List<Category> children = groupByParent.getOrDefault(parentId, new ArrayList<>());
         for (Category child : children) {
-            result.add(child);
-            buildTree(result, groupByParent, child.getId());
+            child.setChildren(buildTree(groupByParent, child.getId()));
         }
+        return children;
     }
 
     @Override

@@ -33,6 +33,8 @@ public class ProductDTO {
 
     private String posterImage;
 
+    private String detailImage;
+
     private Integer status = 1;
 
     private Integer sort = 0;

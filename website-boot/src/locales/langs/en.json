@@ -279,7 +279,15 @@
       "title": "Site Settings",
       "basic": "Basic Info",
       "banner": "Banner Manage",
-      "footer": "Footer Settings"
+      "footer": "Footer Settings",
+      "seo": "SEO Settings",
+      "analytics": "Analytics Code",
+      "email": "Email Config",
+      "about": "About Us"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "visitors": "Visitor Stats"
     }
   },
   "table": {

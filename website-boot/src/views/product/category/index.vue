@@ -44,6 +44,25 @@
         <ElFormItem label="分类名称">
           <ElInput v-model="formData.name" placeholder="请输入分类名称" />
         </ElFormItem>
+        <ElFormItem label="分类图片">
+          <div class="category-image-upload">
+            <div v-if="formData.image" class="image-preview">
+              <img :src="formData.image" alt="分类图片" />
+              <ElIcon class="remove-btn" @click="formData.image = ''"><Close /></ElIcon>
+            </div>
+            <ElUpload
+              v-else
+              :http-request="handleImageUpload"
+              :show-file-list="false"
+              accept="image/*"
+            >
+              <div class="upload-trigger">
+                <ElIcon><Plus /></ElIcon>
+                <span>上传图片</span>
+              </div>
+            </ElUpload>
+          </div>
+        </ElFormItem>
         <ElFormItem label="父级分类">
           <ElTreeSelect v-model="formData.parentId" :data="treeData" :props="{ label: 'name', value: 'id' }"
             placeholder="顶级分类" clearable check-strictly />
@@ -71,6 +90,8 @@ import { h } from 'vue'
 import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
 import { fetchGetCategoryList, fetchCreateCategory, fetchUpdateCategory, fetchDeleteCategory } from '@/api/product'
+import { uploadImage } from '@/api/upload'
+import { Plus, Close } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'Category' })
 
@@ -111,6 +132,7 @@ function filterTree(tree: any[], predicate: (item: any) => boolean): any[] {
 const formData = ref({
   id: undefined as number | undefined,
   name: '',
+  image: '',
   parentId: 0,
   sort: 0,
   status: 1
@@ -122,6 +144,15 @@ const treeData = computed(() => {
 
 // 列配置
 const { columns, columnChecks } = useTableColumns(() => [
+  {
+    prop: 'image',
+    label: '图片',
+    width: 80,
+    formatter: (row: any) =>
+      row.image
+        ? h('img', { src: row.image, style: 'width:40px;height:40px;object-fit:cover;border-radius:4px' })
+        : h('span', { style: 'color:#ccc;font-size:12px' }, '无')
+  },
   { prop: 'name', label: '分类名称', minWidth: 200 },
   { prop: 'sort', label: '排序', width: 100, align: 'center' },
   {
@@ -157,7 +188,7 @@ const { columns, columnChecks } = useTableColumns(() => [
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await fetchGetCategoryList()
+    const data = await fetchGetCategoryList()
     tableData.value = data || []
   } finally {
     loading.value = false
@@ -171,9 +202,9 @@ function resetSearch() {
 function showDialog(type: 'add' | 'edit', row?: any) {
   dialogType.value = type
   if (type === 'edit' && row) {
-    formData.value = { id: row.id, name: row.name, parentId: row.parentId, sort: row.sort, status: row.status }
+    formData.value = { id: row.id, name: row.name, image: row.image || '', parentId: row.parentId, sort: row.sort, status: row.status }
   } else {
-    formData.value = { id: undefined, name: '', parentId: 0, sort: 0, status: 1 }
+    formData.value = { id: undefined, name: '', image: '', parentId: 0, sort: 0, status: 1 }
   }
   dialogVisible.value = true
 }
@@ -191,6 +222,16 @@ async function handleSubmit() {
     loadData()
   } finally {
     submitting.value = false
+  }
+}
+
+async function handleImageUpload(options: any) {
+  try {
+    const url = await uploadImage(options.file)
+    formData.value.image = url
+    ElMessage.success('图片上传成功')
+  } catch (e: any) {
+    ElMessage.error(e.message || '上传失败')
   }
 }
 
@@ -225,6 +266,63 @@ onMounted(() => loadData())
   :deep(.el-button) {
     height: 32px;
     padding: 0 15px;
+  }
+}
+
+.category-image-upload {
+  .image-preview {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--el-border-color);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+  }
+
+  .upload-trigger {
+    width: 100px;
+    height: 100px;
+    border: 1px dashed var(--el-border-color);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    gap: 4px;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+      color: var(--el-color-primary);
+    }
+
+    .el-icon {
+      font-size: 20px;
+    }
   }
 }
 </style>

@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS `t_user` (
     `whatsapp` VARCHAR(20) DEFAULT NULL COMMENT 'WhatsApp号码',
     `avatar` VARCHAR(255) DEFAULT NULL COMMENT '头像',
     `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0-禁用, 1-正常',
+    `last_login_time` DATETIME DEFAULT NULL COMMENT '最后登录时间',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0-未删除, 1-已删除',
@@ -101,6 +102,7 @@ CREATE TABLE IF NOT EXISTS `t_role_menu` (
 CREATE TABLE IF NOT EXISTS `t_category` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '分类ID',
     `name` VARCHAR(100) NOT NULL COMMENT '分类名称',
+    `image` VARCHAR(500) DEFAULT NULL COMMENT '分类图片URL',
     `parent_id` BIGINT NOT NULL DEFAULT 0 COMMENT '父分类ID (0为顶级)',
     `sort` INT NOT NULL DEFAULT 0 COMMENT '排序',
     `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0-禁用, 1-正常',
@@ -122,7 +124,8 @@ CREATE TABLE IF NOT EXISTS `t_product` (
     `discount_price` DECIMAL(10,2) DEFAULT NULL COMMENT '折后价',
     `sku_code` VARCHAR(50) DEFAULT NULL COMMENT '默认SKU编码',
     `main_image` VARCHAR(500) DEFAULT NULL COMMENT '主图URL',
-    `poster_image` VARCHAR(500) DEFAULT NULL COMMENT '海报图URL',
+    `poster_image` VARCHAR(500) DEFAULT NULL COMMENT '海报图URL(横向Banner)',
+    `detail_image` VARCHAR(500) DEFAULT NULL COMMENT '详情长图URL',
     `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态: 0-下架, 1-上架',
     `sort` INT NOT NULL DEFAULT 0 COMMENT '排序',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -257,21 +260,84 @@ INSERT INTO `t_menu` (`id`, `parent_id`, `path`, `name`, `component`, `title`, `
 (33, 30, 'footer', 'SiteFooter', '/site-config/footer', 'menus.siteConfig.footer', NULL, 3, 'C', 1),
 (34, 30, 'seo', 'SiteSeo', '/site-config/seo', 'menus.siteConfig.seo', NULL, 4, 'C', 1),
 (35, 30, 'analytics', 'SiteAnalytics', '/site-config/analytics', 'menus.siteConfig.analytics', NULL, 5, 'C', 1),
-(36, 30, 'email', 'SiteEmail', '/site-config/email', 'menus.siteConfig.email', NULL, 6, 'C', 1);
+(36, 30, 'email', 'SiteEmail', '/site-config/email', 'menus.siteConfig.email', NULL, 6, 'C', 1),
+(37, 30, 'about', 'SiteAbout', '/site-config/about', 'menus.siteConfig.about', NULL, 7, 'C', 1);
 
 -- 角色-菜单关联 (超级管理员拥有所有菜单)
 INSERT INTO `t_role_menu` (`role_code`, `menu_id`) VALUES
 ('R_SUPER', 1), ('R_SUPER', 2), ('R_SUPER', 3), ('R_SUPER', 6), ('R_SUPER', 7),
 ('R_SUPER', 10), ('R_SUPER', 11), ('R_SUPER', 12),
 ('R_SUPER', 20), ('R_SUPER', 21), ('R_SUPER', 23),
-('R_SUPER', 30), ('R_SUPER', 31), ('R_SUPER', 32), ('R_SUPER', 33), ('R_SUPER', 34), ('R_SUPER', 35), ('R_SUPER', 36);
+('R_SUPER', 30), ('R_SUPER', 31), ('R_SUPER', 32), ('R_SUPER', 33), ('R_SUPER', 34), ('R_SUPER', 35), ('R_SUPER', 36), ('R_SUPER', 37);
 
 -- 角色-菜单关联 (普通管理员 - 不含系统管理和菜单管理)
 INSERT INTO `t_role_menu` (`role_code`, `menu_id`) VALUES
 ('R_ADMIN', 1), ('R_ADMIN', 2),
 ('R_ADMIN', 10), ('R_ADMIN', 11), ('R_ADMIN', 12),
 ('R_ADMIN', 20), ('R_ADMIN', 21), ('R_ADMIN', 23),
-('R_ADMIN', 30), ('R_ADMIN', 31), ('R_ADMIN', 32), ('R_ADMIN', 33), ('R_ADMIN', 34), ('R_ADMIN', 35), ('R_ADMIN', 36);
+('R_ADMIN', 30), ('R_ADMIN', 31), ('R_ADMIN', 32), ('R_ADMIN', 33), ('R_ADMIN', 34), ('R_ADMIN', 35), ('R_ADMIN', 36), ('R_ADMIN', 37);
+
+-- =============================================
+-- 13. 访客访问日志表
+-- =============================================
+CREATE TABLE IF NOT EXISTS `t_visit_log` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `ip` VARCHAR(50) NOT NULL COMMENT '访客IP',
+    `country` VARCHAR(100) DEFAULT NULL COMMENT '国家',
+    `province` VARCHAR(100) DEFAULT NULL COMMENT '省/州',
+    `city` VARCHAR(100) DEFAULT NULL COMMENT '城市',
+    `page_url` VARCHAR(500) DEFAULT NULL COMMENT '访问页面路径',
+    `user_agent` VARCHAR(500) DEFAULT NULL COMMENT '浏览器UA',
+    `device_type` VARCHAR(20) DEFAULT NULL COMMENT '设备类型: PC/Mobile/Tablet',
+    `visit_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '访问时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_visit_time` (`visit_time`),
+    KEY `idx_country` (`country`),
+    KEY `idx_ip` (`ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='访客访问日志表';
+
+-- =============================================
+-- 14. 访客统计聚合表
+-- =============================================
+CREATE TABLE IF NOT EXISTS `t_visit_stats` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `stat_date` DATE NOT NULL COMMENT '统计日期',
+    `country` VARCHAR(100) DEFAULT '' COMMENT '国家',
+    `city` VARCHAR(100) DEFAULT '' COMMENT '城市',
+    `page_url` VARCHAR(500) DEFAULT '' COMMENT '页面路径',
+    `pv` INT NOT NULL DEFAULT 0 COMMENT '页面访问量',
+    `uv` INT NOT NULL DEFAULT 0 COMMENT '独立访客数',
+    `mobile_pv` INT NOT NULL DEFAULT 0 COMMENT '移动端PV',
+    `pc_pv` INT NOT NULL DEFAULT 0 COMMENT 'PC端PV',
+    `tablet_pv` INT NOT NULL DEFAULT 0 COMMENT '平板端PV',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_stats` (`stat_date`, `country`, `city`, `page_url`(191)),
+    KEY `idx_stat_date` (`stat_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='访客统计聚合表';
+
+-- 访客统计菜单
+INSERT INTO `t_menu` (`id`, `parent_id`, `path`, `name`, `component`, `title`, `icon`, `sort`, `type`, `keep_alive`) VALUES
+(40, 0, '/analytics', 'Analytics', '/index/index', 'menus.analytics.title', 'ri:bar-chart-2-line', 5, 'M', 1),
+(41, 40, 'visitors', 'VisitorStats', '/analytics/visitors', 'menus.analytics.visitors', NULL, 1, 'C', 1);
+
+-- 角色-菜单关联
+INSERT INTO `t_role_menu` (`role_code`, `menu_id`) VALUES
+('R_SUPER', 40), ('R_SUPER', 41),
+('R_ADMIN', 40), ('R_ADMIN', 41);
+
+-- =============================================
+-- 15. 购物车表
+-- =============================================
+CREATE TABLE IF NOT EXISTS `t_cart` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `product_id` BIGINT NOT NULL COMMENT '商品ID',
+    `sku_id` BIGINT DEFAULT NULL COMMENT 'SKU ID',
+    `quantity` INT NOT NULL DEFAULT 1 COMMENT '数量',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='购物车表';
 
 -- 系统配置初始数据
 INSERT INTO `t_site_config` (`config_key`, `config_value`, `description`) VALUES
@@ -281,4 +347,5 @@ INSERT INTO `t_site_config` (`config_key`, `config_value`, `description`) VALUES
 ('footer_info', '{"copyright":"","links":[]}', '底部信息'),
 ('contact_email', '""', '联系邮箱'),
 ('contact_whatsapp', '""', '联系WhatsApp'),
-('social_links', '{}', '社交媒体链接');
+('social_links', '{}', '社交媒体链接'),
+('about_us', '{"bannerImage":"","storyImage":"","storyTitle":"OUR STORY","storyContent":"Founded in 2020, Indie Station was born from a simple belief: furniture should be simple, functional, and beautiful. Each piece in our collection is thoughtfully designed and crafted with care by skilled artisans.","philosophy":[{"icon":"quality","title":"QUALITY","desc":"Premium materials built to last"},{"icon":"simple","title":"SIMPLE","desc":"Clean lines and minimal design that fits any space"},{"icon":"sustainable","title":"SUSTAINABLE","desc":"Eco-friendly materials and ethical practices"}],"craftImage":"","craftTitle":"HANDCRAFTED WITH CARE","craftContent":"Every joint, every curve, every finish is executed with precision and patience. We work with solid wood, natural materials, and time-honored techniques.","stats":[{"number":"500+","label":"Products Sold"},{"number":"15","label":"Years Craft"},{"number":"30+","label":"Countries"}],"ctaText":"READY TO FURNISH YOUR SPACE?","ctaButtonText":"EXPLORE OUR COLLECTION"}', '关于我们页面配置');

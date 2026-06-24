@@ -79,7 +79,7 @@ const formData = ref({
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await fetchGetSiteConfig()
+    const data = await fetchGetSiteConfig()
     if (data) {
       if (data.footer_info) {
         try {

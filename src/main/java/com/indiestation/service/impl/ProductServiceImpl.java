@@ -82,6 +82,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         dto.setSkuCode(product.getSkuCode());
         dto.setMainImage(product.getMainImage());
         dto.setPosterImage(product.getPosterImage());
+        dto.setDetailImage(product.getDetailImage());
         dto.setStatus(product.getStatus());
         dto.setSort(product.getSort());
 
@@ -128,6 +129,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         product.setSkuCode(dto.getSkuCode());
         product.setMainImage(dto.getMainImage());
         product.setPosterImage(dto.getPosterImage());
+        product.setDetailImage(dto.getDetailImage());
         product.setStatus(dto.getStatus());
         product.setSort(dto.getSort());
         save(product);
@@ -156,6 +158,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         product.setSkuCode(dto.getSkuCode());
         product.setMainImage(dto.getMainImage());
         product.setPosterImage(dto.getPosterImage());
+        product.setDetailImage(dto.getDetailImage());
         product.setStatus(dto.getStatus());
         product.setSort(dto.getSort());
         updateById(product);

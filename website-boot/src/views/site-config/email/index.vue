@@ -80,7 +80,7 @@ const formData = ref({
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await fetchGetSiteConfig()
+    const data = await fetchGetSiteConfig()
     if (data?.email_config) {
       try {
         const config = JSON.parse(data.email_config)

@@ -283,7 +283,12 @@
       "footer": "Footer设置",
       "seo": "SEO设置",
       "analytics": "统计代码",
-      "email": "邮件配置"
+      "email": "邮件配置",
+      "about": "关于我们"
+    },
+    "analytics": {
+      "title": "数据分析",
+      "visitors": "访客统计"
     }
   },
   "table": {

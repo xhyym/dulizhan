@@ -152,7 +152,72 @@
           <div class="image-tip">支持多张图片上传，第一张将作为商品主图</div>
         </div>
 
-        <!-- 第三栏：SKU信息 -->
+        <!-- 第三栏：海报图与详情图 -->
+        <div class="dialog-column">
+          <h4 class="column-title">海报图与详情图</h4>
+          <div class="special-images">
+            <div class="special-image-item">
+              <div class="image-label">海报图（横向Banner）</div>
+              <div class="image-box">
+                <ElImage
+                  v-if="formData.posterImage"
+                  :src="formData.posterImage"
+                  style="width: 200px; height: 100px"
+                  fit="cover"
+                  :preview-src-list="[formData.posterImage]"
+                  preview-teleported
+                />
+                <ElUpload
+                  v-else
+                  :http-request="(e: any) => handleSpecialImageUpload(e, 'posterImage')"
+                  :show-file-list="false"
+                  accept="image/*"
+                >
+                  <ElIcon class="upload-trigger wide"><Plus /></ElIcon>
+                </ElUpload>
+                <ElIcon
+                  v-if="formData.posterImage"
+                  class="delete-btn"
+                  @click="formData.posterImage = ''"
+                >
+                  <CircleClose />
+                </ElIcon>
+              </div>
+              <div class="image-tip">建议尺寸 1920×500</div>
+            </div>
+            <div class="special-image-item">
+              <div class="image-label">详情长图</div>
+              <div class="image-box">
+                <ElImage
+                  v-if="formData.detailImage"
+                  :src="formData.detailImage"
+                  style="width: 200px; height: 200px"
+                  fit="cover"
+                  :preview-src-list="[formData.detailImage]"
+                  preview-teleported
+                />
+                <ElUpload
+                  v-else
+                  :http-request="(e: any) => handleSpecialImageUpload(e, 'detailImage')"
+                  :show-file-list="false"
+                  accept="image/*"
+                >
+                  <ElIcon class="upload-trigger"><Plus /></ElIcon>
+                </ElUpload>
+                <ElIcon
+                  v-if="formData.detailImage"
+                  class="delete-btn"
+                  @click="formData.detailImage = ''"
+                >
+                  <CircleClose />
+                </ElIcon>
+              </div>
+              <div class="image-tip">商品详情页底部展示</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第四栏：SKU信息 -->
         <div class="dialog-column">
           <h4 class="column-title">SKU信息</h4>
           <div class="sku-area">
@@ -230,6 +295,8 @@ const formData = ref({
   discountPrice: undefined as number | undefined,
   skuCode: '',
   mainImage: '',
+  posterImage: '',
+  detailImage: '',
   images: [] as string[],
   skus: [] as any[],
   status: 1,
@@ -315,7 +382,7 @@ const { columns, columnChecks } = useTableColumns(() => [
 // 加载分类选项
 async function loadCategories() {
   try {
-    const { data } = await fetchGetCategoryList()
+    const data = await fetchGetCategoryList()
     categoryOptions.value = data || []
   } catch (error) {
     console.error('加载分类失败', error)
@@ -336,7 +403,7 @@ async function loadData() {
       params.startTime = searchForm.value.dateRange[0]
       params.endTime = searchForm.value.dateRange[1]
     }
-    const { data } = await fetchGetProductList(params)
+    const data = await fetchGetProductList(params)
     tableData.value = data.records || []
     pagination.value.total = data.total
   } finally {
@@ -370,7 +437,7 @@ function resetSearch() {
 async function openDialog(id?: number) {
   if (id) {
     try {
-      const { data } = await fetchGetProductDetail(id)
+      const data = await fetchGetProductDetail(id)
       formData.value = {
         id: data.id,
         name: data.name,
@@ -380,6 +447,8 @@ async function openDialog(id?: number) {
         discountPrice: data.discountPrice,
         skuCode: data.skuCode || '',
         mainImage: data.mainImage || '',
+        posterImage: data.posterImage || '',
+        detailImage: data.detailImage || '',
         images: data.images || [],
         skus: (data.skus || []).map(s => ({ ...s })),
         status: data.status,
@@ -406,6 +475,8 @@ function resetForm() {
     discountPrice: undefined,
     skuCode: '',
     mainImage: '',
+    posterImage: '',
+    detailImage: '',
     images: [],
     skus: [],
     status: 1,
@@ -422,6 +493,17 @@ async function handleImageUpload(options: any) {
     } else {
       formData.value.images.push(url)
     }
+    ElMessage.success('图片上传成功')
+  } catch (e: any) {
+    ElMessage.error(e.message || '上传失败')
+  }
+}
+
+// 上传海报图/详情图
+async function handleSpecialImageUpload(options: any, field: 'posterImage' | 'detailImage') {
+  try {
+    const url = await uploadImage(options.file)
+    formData.value[field] = url
     ElMessage.success('图片上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -603,6 +685,43 @@ onMounted(() => {
   margin-top: 8px;
   font-size: 12px;
   color: #909399;
+}
+
+.special-images {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.special-image-item {
+  .image-label {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #606266;
+  }
+
+  .image-box {
+    position: relative;
+    display: inline-block;
+
+    .delete-btn {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      cursor: pointer;
+      color: #f56c6c;
+      font-size: 18px;
+      background: #fff;
+      border-radius: 50%;
+      z-index: 1;
+    }
+  }
+}
+
+.upload-trigger.wide {
+  width: 200px;
+  height: 100px;
 }
 
 .sku-area {

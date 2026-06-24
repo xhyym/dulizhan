@@ -32,6 +32,9 @@ public class User {
     /** 状态: 0-禁用, 1-正常 */
     private Integer status;
 
+    /** 最后登录时间 */
+    private LocalDateTime lastLoginTime;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

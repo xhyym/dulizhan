@@ -123,7 +123,7 @@ const { columns, columnChecks } = useTableColumns(() => [
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await fetchGetInquiryList({
+    const data = await fetchGetInquiryList({
       current: pagination.value.current,
       size: pagination.value.size,
       ...searchForm.value

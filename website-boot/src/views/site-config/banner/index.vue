@@ -57,7 +57,7 @@ const banners = ref<Banner[]>([])
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await fetchGetSiteConfig()
+    const data = await fetchGetSiteConfig()
     if (data?.banner_images) {
       try {
         banners.value = JSON.parse(data.banner_images)

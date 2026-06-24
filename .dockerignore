@@ -1,0 +1,12 @@
+.git
+.gitignore
+.idea
+*.iml
+target
+portal
+website-boot
+node_modules
+docs
+deploy
+*.md
+.env
