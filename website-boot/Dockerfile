@@ -2,7 +2,8 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9 --activate
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN printf 'packages:\n  - .\n\n' | cat - pnpm-workspace.yaml > temp && mv temp pnpm-workspace.yaml
 RUN pnpm install --frozen-lockfile
 COPY . .
 ENV VITE_API_URL=/
