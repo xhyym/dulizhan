@@ -6,6 +6,7 @@ import com.indiestation.exception.BusinessException;
 import com.indiestation.service.R2Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -26,7 +27,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class R2ServiceImpl implements R2Service {
 
-    private final S3Presigner s3Presigner;
+    private final ObjectProvider<S3Presigner> s3PresignerProvider;
     private final R2Config r2Config;
 
     /** 预签名有效期 (分钟) */
@@ -39,6 +40,12 @@ public class R2ServiceImpl implements R2Service {
 
     @Override
     public PresignedUrlVo generateUploadUrl(String fileName, String contentType) {
+        S3Presigner s3Presigner = s3PresignerProvider.getIfAvailable();
+        if (s3Presigner == null || !r2Config.isConfigured()) {
+            log.warn("R2 文件存储未配置，无法生成预签名上传地址: fileName={}, contentType={}", fileName, contentType);
+            throw new BusinessException("R2 文件存储未配置，请先配置 R2_ENDPOINT、R2_ACCESS_KEY、R2_SECRET_KEY、R2_PUBLIC_URL");
+        }
+
         // 校验文件类型
         if (!isAllowedContentType(contentType)) {
             throw new BusinessException("不支持的文件类型: " + contentType);

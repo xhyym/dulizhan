@@ -33,7 +33,7 @@ export function fetchUpdateProduct(id: number, data: Api.Product.ProductDTO) {
 
 /** 删除商品 */
 export function fetchDeleteProduct(id: number) {
-  return request.delete({
+  return request.del({
     url: `/api/admin/products/${id}`
   })
 }
@@ -63,7 +63,7 @@ export function fetchUpdateCategory(id: number, data: Api.Product.CategoryDTO) {
 
 /** 删除分类 */
 export function fetchDeleteCategory(id: number) {
-  return request.delete({
+  return request.del({
     url: `/api/admin/categories/${id}`
   })
 }

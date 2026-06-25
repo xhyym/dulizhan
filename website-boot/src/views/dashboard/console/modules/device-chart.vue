@@ -10,14 +10,15 @@
 
 <script setup lang="ts">
   import * as echarts from 'echarts'
-  import type { EChartsType } from 'echarts/core'
+
+  type ChartInstance = ReturnType<typeof echarts.init>
 
   const props = defineProps<{
     data: Record<string, any>[]
   }>()
 
   const chartRef = ref<HTMLElement>()
-  let chartInstance: EChartsType | null = null
+  let chartInstance: ChartInstance | null = null
 
   const deviceLabels: Record<string, string> = {
     PC: '桌面端',
@@ -28,16 +29,15 @@
   function renderChart() {
     if (!chartRef.value || !props.data?.length) return
 
-    if (!chartInstance) {
-      chartInstance = echarts.init(chartRef.value)
-    }
+    const chart = chartInstance ?? echarts.init(chartRef.value)
+    chartInstance = chart
 
     const seriesData = props.data.map((d) => ({
       name: deviceLabels[d.deviceType] || d.deviceType,
       value: Number(d.uv) || 0
     }))
 
-    chartInstance.setOption({
+    chart.setOption({
       tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
       legend: { bottom: 0 },
       series: [

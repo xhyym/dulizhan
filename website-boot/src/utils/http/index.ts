@@ -61,6 +61,11 @@ const axiosInstance = axios.create({
   ]
 })
 
+/** 是否跳过统一响应体解析 */
+function shouldSkipUnifiedResponse(responseType?: AxiosRequestConfig['responseType']) {
+  return responseType === 'blob' || responseType === 'arraybuffer'
+}
+
 /** 请求拦截器 */
 axiosInstance.interceptors.request.use(
   (request: InternalAxiosRequestConfig) => {
@@ -83,6 +88,8 @@ axiosInstance.interceptors.request.use(
 /** 响应拦截器 */
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse<BaseResponse>) => {
+    if (shouldSkipUnifiedResponse(response.config.responseType)) return response
+
     const { code, msg } = response.data
     if (code === ApiStatus.success) return response
     if (code === ApiStatus.unauthorized) handleUnauthorizedError(msg)
@@ -175,14 +182,20 @@ async function request<T = any>(config: ExtendedAxiosRequestConfig): Promise<T> 
   }
 
   try {
-    const res = await axiosInstance.request<BaseResponse<T>>(config)
+    const res = await axiosInstance.request<BaseResponse<T> | T>(config)
 
-    // 显示成功消息
-    if (config.showSuccessMessage && res.data.msg) {
-      showSuccess(res.data.msg)
+    if (shouldSkipUnifiedResponse(config.responseType)) {
+      return res.data as T
     }
 
-    return res.data.data as T
+    const responseData = res.data as BaseResponse<T>
+
+    // 显示成功消息
+    if (config.showSuccessMessage && responseData.msg) {
+      showSuccess(responseData.msg)
+    }
+
+    return responseData.data as T
   } catch (error) {
     if (error instanceof HttpError && error.code !== ApiStatus.unauthorized) {
       const showMsg = config.showErrorMessage !== false

@@ -52,13 +52,15 @@ import FileSaver from 'file-saver'
 
 defineOptions({ name: 'InquiryList' })
 
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+
 const loading = ref(false)
 const tableData = ref<any[]>([])
 
 const searchForm = ref({ inquiryNo: '', userName: '', status: undefined as number | undefined })
 const pagination = ref({ current: 1, size: 10, total: 0 })
 
-const statusConfig: Record<number, { type: string; text: string }> = {
+const statusConfig: Record<number, { type: TagType; text: string }> = {
   0: { type: 'warning', text: '待处理' },
   1: { type: 'primary', text: '已联系' },
   2: { type: 'success', text: '已完成' },
@@ -85,7 +87,7 @@ const { columns, columnChecks } = useTableColumns(() => [
     align: 'center',
     formatter: (row: any) => {
       const cfg = statusConfig[row.status]
-      return h(ElTag, { type: cfg?.type }, () => cfg?.text || '未知')
+      return h(ElTag, { type: cfg?.type ?? 'info' }, () => cfg?.text || '未知')
     }
   },
   { prop: 'createTime', label: '创建时间', width: 180 },
@@ -163,8 +165,7 @@ async function handleCancel(row: any) {
 // 生成转换单 PDF
 async function handleGeneratePdf(row: any) {
   try {
-    const response = await fetchGenerateInquiryPdf(row.id)
-    const blob = new Blob([response.data], { type: 'application/pdf' })
+    const blob = await fetchGenerateInquiryPdf(row.id)
     FileSaver.saveAs(blob, `询盘转换单_${row.inquiryNo}.pdf`)
     ElMessage.success('PDF 已下载')
   } catch (error: any) {

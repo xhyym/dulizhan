@@ -21,6 +21,8 @@
 </template>
 
 <script setup lang="ts">
+  type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+
   defineProps<{
     data: Record<string, any>[]
   }>()
@@ -30,8 +32,8 @@
     return map[status] ?? '未知'
   }
 
-  function statusType(status: number) {
-    const map: Record<number, string> = { 0: 'warning', 1: 'primary', 2: 'success', 3: 'info' }
+  function statusType(status: number): TagType {
+    const map: Record<number, TagType> = { 0: 'warning', 1: 'primary', 2: 'success', 3: 'info' }
     return map[status] ?? 'info'
   }
 </script>

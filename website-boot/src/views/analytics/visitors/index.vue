@@ -120,10 +120,11 @@
 
 <script setup lang="ts">
   import * as echarts from 'echarts'
-  import type { EChartsType } from 'echarts/core'
   import { fetchGetVisitorStats } from '@/api/dashboard'
 
   defineOptions({ name: 'VisitorStats' })
+
+  type ChartInstance = ReturnType<typeof echarts.init>
 
   const dateRange = ref<string[]>([])
   const statsData = ref<Api.Dashboard.VisitorStatsVO | null>(null)
@@ -133,10 +134,10 @@
   const deviceChartRef = ref<HTMLElement>()
   const heatmapChartRef = ref<HTMLElement>()
 
-  let trendChart: EChartsType | null = null
-  let countryChart: EChartsType | null = null
-  let deviceChart: EChartsType | null = null
-  let heatmapChart: EChartsType | null = null
+  let trendChart: ChartInstance | null = null
+  let countryChart: ChartInstance | null = null
+  let deviceChart: ChartInstance | null = null
+  let heatmapChart: ChartInstance | null = null
 
   const deviceLabels: Record<string, string> = { PC: '桌面端', Mobile: '移动端', Tablet: '平板端' }
   const dayLabels = ['', '周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -171,10 +172,11 @@
 
   function renderTrendChart() {
     if (!trendChartRef.value || !statsData.value?.dailyTrend?.length) return
-    if (!trendChart) trendChart = echarts.init(trendChartRef.value)
+    const chart = trendChart ?? echarts.init(trendChartRef.value)
+    trendChart = chart
 
     const data = statsData.value.dailyTrend
-    trendChart.setOption({
+    chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['PV', 'UV'], top: 0 },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -189,10 +191,11 @@
 
   function renderCountryChart() {
     if (!countryChartRef.value || !statsData.value?.countryTop10?.length) return
-    if (!countryChart) countryChart = echarts.init(countryChartRef.value)
+    const chart = countryChart ?? echarts.init(countryChartRef.value)
+    countryChart = chart
 
     const data = statsData.value.countryTop10
-    countryChart.setOption({
+    chart.setOption({
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { type: 'category', data: data.map((d: any) => d.country), axisLabel: { rotate: 30 } },
@@ -203,9 +206,10 @@
 
   function renderDeviceChart() {
     if (!deviceChartRef.value || !statsData.value?.deviceDistribution?.length) return
-    if (!deviceChart) deviceChart = echarts.init(deviceChartRef.value)
+    const chart = deviceChart ?? echarts.init(deviceChartRef.value)
+    deviceChart = chart
 
-    deviceChart.setOption({
+    chart.setOption({
       tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
       legend: { bottom: 0 },
       series: [{
@@ -222,7 +226,8 @@
 
   function renderHeatmapChart() {
     if (!heatmapChartRef.value || !statsData.value?.hourlyHeatmap?.length) return
-    if (!heatmapChart) heatmapChart = echarts.init(heatmapChartRef.value)
+    const chart = heatmapChart ?? echarts.init(heatmapChartRef.value)
+    heatmapChart = chart
 
     const rawData = statsData.value.hourlyHeatmap
     const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`)
@@ -235,7 +240,7 @@
       heatData.push([hour, day, Number(item.pv) || 0])
     }
 
-    heatmapChart.setOption({
+    chart.setOption({
       tooltip: { formatter: (p: any) => `${days[p.value[1]]} ${hours[p.value[0]]}<br/>PV: ${p.value[2]}` },
       grid: { left: '8%', right: '4%', bottom: '15%', top: '3%' },
       xAxis: { type: 'category', data: hours, splitArea: { show: true } },

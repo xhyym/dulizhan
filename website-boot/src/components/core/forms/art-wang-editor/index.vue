@@ -32,6 +32,12 @@
 
   const { VITE_API_URL } = import.meta.env
 
+  /** 拼接接口地址，避免空前缀或斜杠重复导致 Docker 代理路径异常 */
+  const getApiUrl = (path: string) => {
+    const apiPrefix = VITE_API_URL?.replace(/\/$/, '') || ''
+    return `${apiPrefix}${path}`
+  }
+
   // Props 定义
   interface Props {
     /** 编辑器高度 */
@@ -80,7 +86,7 @@
 
   // 计算属性：上传服务器地址
   const uploadServer = computed(
-    () => props.uploadConfig?.server || `${VITE_API_URL}/api/common/upload/wangeditor`
+    () => props.uploadConfig?.server || getApiUrl('/api/common/upload/wangeditor')
   )
 
   // 合并上传配置

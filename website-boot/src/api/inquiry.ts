@@ -25,8 +25,8 @@ export function fetchUpdateInquiryStatus(id: number, data: { status: number; adm
 
 /** 生成询盘转换单 PDF */
 export function fetchGenerateInquiryPdf(id: number) {
-  return request.get({
+  return request.get<Blob>({
     url: `/api/admin/inquiries/${id}/pdf`,
-    responseType: 'blob' as any
+    responseType: 'blob'
   })
 }

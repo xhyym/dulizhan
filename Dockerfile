@@ -1,14 +1,17 @@
 # ---- 构建阶段 ----
-FROM --platform=linux/amd64 maven:3.9-eclipse-temurin-17 AS build
+ARG MAVEN_IMAGE=maven:3.9-eclipse-temurin-17
+ARG JRE_IMAGE=eclipse-temurin:17-jre
+FROM ${MAVEN_IMAGE} AS build
 WORKDIR /build
+ARG MAVEN_OPTS_ARGS=
 COPY pom.xml .
 # 先下载依赖（利用 Docker 缓存层）
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:go-offline -B ${MAVEN_OPTS_ARGS}
 COPY src ./src
-RUN mvn package -DskipTests -B
+RUN mvn package -DskipTests -B ${MAVEN_OPTS_ARGS}
 
 # ---- 运行阶段 ----
-FROM --platform=linux/amd64 eclipse-temurin:17-jre
+FROM ${JRE_IMAGE}
 WORKDIR /app
 RUN mkdir -p /app/uploads
 

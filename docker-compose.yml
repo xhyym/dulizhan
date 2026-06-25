@@ -1,11 +1,13 @@
-version: "3.8"
-
 services:
   # ---- 后端 Java 服务 ----
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        MAVEN_IMAGE: ${MAVEN_IMAGE:-docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17}
+        JRE_IMAGE: ${JRE_IMAGE:-docker.m.daocloud.io/library/eclipse-temurin:17-jre}
+        MAVEN_OPTS_ARGS: ${MAVEN_OPTS_ARGS:--Dmaven.repo.local=/root/.m2/repository}
     container_name: dulizhan-backend
     restart: unless-stopped
     environment:
@@ -31,6 +33,12 @@ services:
     build:
       context: ./website-boot
       dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-docker.m.daocloud.io/library/node:20-alpine}
+        NGINX_IMAGE: ${NGINX_IMAGE:-docker.m.daocloud.io/library/nginx:alpine}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+        VITE_API_URL: ${ADMIN_API_URL:-}
+        VITE_BASE_URL: ${ADMIN_BASE_URL:-/admin/}
     container_name: dulizhan-admin
     restart: unless-stopped
     depends_on:
@@ -41,6 +49,9 @@ services:
     build:
       context: ./portal
       dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-docker.m.daocloud.io/library/node:20-alpine}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
     container_name: dulizhan-portal
     restart: unless-stopped
     environment:
@@ -50,7 +61,7 @@ services:
 
   # ---- Nginx 反向代理 ----
   nginx:
-    image: nginx:alpine
+    image: ${NGINX_IMAGE:-docker.m.daocloud.io/library/nginx:alpine}
     container_name: dulizhan-nginx
     restart: unless-stopped
     ports:

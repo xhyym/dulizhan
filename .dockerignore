@@ -2,7 +2,8 @@
 .gitignore
 .idea
 *.iml
-target
+target/*
+!target/admin-boot-1.0.0-SNAPSHOT.jar
 portal
 website-boot
 node_modules

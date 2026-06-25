@@ -1,11 +1,13 @@
 # ---- 依赖阶段 ----
-FROM node:20-alpine AS deps
+ARG NODE_IMAGE=node:20-alpine
+FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+COPY package.json package-lock.json ./
+RUN npm ci --registry=${NPM_REGISTRY}
 
 # ---- 构建阶段 ----
-FROM node:20-alpine AS build
+FROM ${NODE_IMAGE} AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -13,7 +15,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # ---- 运行阶段 ----
-FROM node:20-alpine AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

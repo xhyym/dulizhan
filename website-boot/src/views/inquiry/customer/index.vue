@@ -82,6 +82,8 @@ import { fetchGetUserList, fetchGetUserInquiries } from '@/api/user'
 
 defineOptions({ name: 'CustomerList' })
 
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+
 const loading = ref(false)
 const inquiriesLoading = ref(false)
 const tableData = ref<any[]>([])
@@ -92,7 +94,7 @@ const customerInquiries = ref<any[]>([])
 const searchForm = ref({ username: '', email: '', status: undefined as number | undefined })
 const pagination = ref({ current: 1, size: 10, total: 0 })
 
-const statusConfig: Record<number, { type: string; text: string }> = {
+const statusConfig: Record<number, { type: TagType; text: string }> = {
   0: { type: 'warning', text: '待处理' },
   1: { type: 'primary', text: '已联系' },
   2: { type: 'success', text: '已完成' },

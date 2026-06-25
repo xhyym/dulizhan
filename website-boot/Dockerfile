@@ -1,17 +1,23 @@
 # ---- 构建阶段 ----
-FROM node:20-alpine AS build
+ARG NODE_IMAGE=node:20-alpine
+ARG NGINX_IMAGE=nginx:alpine
+FROM ${NODE_IMAGE} AS build
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9 --activate
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN printf 'packages:\n  - .\n\n' | cat - pnpm-workspace.yaml > temp && mv temp pnpm-workspace.yaml
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml ./
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+RUN pnpm config set registry ${NPM_REGISTRY} && pnpm install --frozen-lockfile
 COPY . .
-ENV VITE_API_URL=/
-ENV VITE_BASE_URL=/
+# pnpm-workspace.yaml 缺少 packages 字段，补上
+RUN printf 'packages:\n  - .\n\n' | cat - pnpm-workspace.yaml > temp && mv temp pnpm-workspace.yaml
+ARG VITE_API_URL=
+ARG VITE_BASE_URL=/admin/
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_BASE_URL=${VITE_BASE_URL}
 RUN pnpm build
 
 # ---- 运行阶段 ----
-FROM nginx:alpine
+FROM ${NGINX_IMAGE}
 COPY --from=build /app/dist /usr/share/nginx/html
 # SPA 路由回退
 RUN echo 'server { \

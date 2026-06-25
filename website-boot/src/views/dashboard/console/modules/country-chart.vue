@@ -10,26 +10,26 @@
 
 <script setup lang="ts">
   import * as echarts from 'echarts'
-  import type { EChartsType } from 'echarts/core'
+
+  type ChartInstance = ReturnType<typeof echarts.init>
 
   const props = defineProps<{
     data: Record<string, any>[]
   }>()
 
   const chartRef = ref<HTMLElement>()
-  let chartInstance: EChartsType | null = null
+  let chartInstance: ChartInstance | null = null
 
   function renderChart() {
     if (!chartRef.value || !props.data?.length) return
 
-    if (!chartInstance) {
-      chartInstance = echarts.init(chartRef.value)
-    }
+    const chart = chartInstance ?? echarts.init(chartRef.value)
+    chartInstance = chart
 
     const countries = props.data.map((d) => d.country)
     const uvData = props.data.map((d) => Number(d.uv) || 0)
 
-    chartInstance.setOption({
+    chart.setOption({
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: { type: 'category', data: countries, axisLabel: { rotate: 30 } },
