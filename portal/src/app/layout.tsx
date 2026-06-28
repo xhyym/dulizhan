@@ -7,17 +7,27 @@ import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import LoginModal from "@/components/auth/LoginModal";
 import TranslateProvider from "@/components/TranslateProvider";
+import { portalAPI } from "@/lib/api";
+import { buildRootMetadata } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Indie Station - Handcrafted Furniture",
-  description:
-    "Timeless design for modern living. Handcrafted furniture made with care.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
+
+  if (!siteConfig) {
+    return {
+      title: "OSEN FURNITURE",
+      description:
+        "OSEN FURNITURE provides modern sofas, tables, chairs and custom furniture solutions for wholesale, retail and project orders worldwide.",
+    };
+  }
+
+  return buildRootMetadata(siteConfig);
+}
 
 export default function RootLayout({
   children,

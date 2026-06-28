@@ -15,13 +15,13 @@
       <div v-loading="loading">
         <ElEmpty v-if="banners.length === 0" description="暂无轮播图" />
 
-        <div v-else style="display: flex; flex-wrap: wrap; gap: 16px">
-          <ElCard v-for="(banner, index) in banners" :key="index" style="width: 320px" shadow="hover">
-            <ElImage :src="banner.image" style="width: 100%; height: 160px" fit="cover" />
-            <div style="margin-top: 12px">
-              <ElInput v-model="banner.title" placeholder="标题(可选)" size="small" style="margin-bottom: 8px" />
-              <ElInput v-model="banner.link" placeholder="链接(可选)" size="small" style="margin-bottom: 8px" />
-              <div style="display: flex; justify-content: space-between; align-items: center">
+        <div v-else class="banner-grid">
+          <ElCard v-for="(banner, index) in banners" :key="index" class="banner-item" shadow="hover">
+            <ElImage :src="banner.image" class="banner-image" fit="cover" />
+            <div class="banner-form">
+              <ElInput v-model="banner.title" placeholder="标题(可选)" size="small" class="banner-input" />
+              <ElInput v-model="banner.link" placeholder="链接(可选)" size="small" class="banner-input" />
+              <div class="banner-actions">
                 <ElUpload :http-request="(opt: any) => handleBannerUpload(opt, index)" :show-file-list="false"
                   accept="image/*">
                   <ElButton size="small" type="primary" link>更换图片</ElButton>
@@ -97,3 +97,50 @@ async function handleSave() {
 
 onMounted(() => loadData())
 </script>
+
+<style scoped lang="scss">
+.site-banner {
+  :deep(.el-card) {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.el-card__body) {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+.banner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.banner-item {
+  min-width: 0;
+}
+
+.banner-image {
+  width: 100%;
+  height: 160px;
+}
+
+.banner-form {
+  margin-top: 12px;
+}
+
+.banner-input {
+  margin-bottom: 8px;
+}
+
+.banner-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+</style>

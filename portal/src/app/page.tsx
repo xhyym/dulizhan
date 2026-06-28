@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { portalAPI, Product } from "@/lib/api";
 import HeroCarousel from "@/components/ui/HeroCarousel";
 import CategoryMarquee from "@/components/ui/CategoryMarquee";
+import { buildHomeMetadata } from "@/lib/seo";
+import { parseBannerImages, parseConfigJson } from "@/lib/site-config";
 
 function requireConfig(config: Record<string, string>, key: string): string {
   const val = config[key];
@@ -9,13 +12,18 @@ function requireConfig(config: Record<string, string>, key: string): string {
   return val;
 }
 
-function parseJsonConfig(config: Record<string, string>, key: string): any {
-  const raw = requireConfig(config, key);
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error(`站点配置格式错误: ${key}，JSON 解析失败`);
+export async function generateMetadata(): Promise<Metadata> {
+  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
+
+  if (!siteConfig) {
+    return {
+      title: "OSEN FURNITURE | Modern Furniture Manufacturer",
+      description:
+        "OSEN FURNITURE provides modern sofas, tables, chairs and custom furniture solutions for wholesale, retail and project orders worldwide.",
+    };
   }
+
+  return buildHomeMetadata(siteConfig);
 }
 
 export default async function HomePage() {
@@ -34,7 +42,7 @@ export default async function HomePage() {
   }
 
   // 解析 banner_images
-  const bannerImages = parseJsonConfig(siteConfig, "banner_images") as string[];
+  const bannerImages = parseBannerImages(requireConfig(siteConfig, "banner_images"));
   if (!bannerImages.length) {
     throw new Error("站点配置错误: banner_images 数组为空，请在后台添加轮播图");
   }
@@ -45,7 +53,10 @@ export default async function HomePage() {
   const heroSubtitle = requireConfig(siteConfig, "hero_subtitle");
 
   // 解析 about_us 中的 Our Story
-  const aboutUs = parseJsonConfig(siteConfig, "about_us");
+  const aboutUs = parseConfigJson<Record<string, string | undefined>>(
+    requireConfig(siteConfig, "about_us"),
+    {}
+  );
   const storyImage = aboutUs.storyImage;
   const storyTitle = aboutUs.storyTitle;
   const storyContent = aboutUs.storyContent;

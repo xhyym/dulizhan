@@ -16,6 +16,9 @@ public class CategoryDTO {
     @NotBlank(message = "分类名称不能为空")
     private String name;
 
+    /** 分类图片URL */
+    private String image;
+
     private Long parentId = 0L;
 
     private Integer sort = 0;

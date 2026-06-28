@@ -256,7 +256,7 @@
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { ElMessageBox, ElMessage, ElTag, ElImage } from 'element-plus'
 import { Plus, CircleClose } from '@element-plus/icons-vue'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
@@ -272,9 +272,26 @@ import { uploadImage } from '@/api/upload'
 
 defineOptions({ name: 'ProductList' })
 
+interface ProductFormData {
+  id?: number
+  name: string
+  description: string
+  categoryId: number | undefined
+  price: number
+  discountPrice: number | undefined
+  skuCode: string
+  mainImage: string
+  posterImage: string
+  detailImage: string
+  images: string[]
+  skus: Api.Product.SkuItem[]
+  status: number
+  sort: number
+}
+
 const loading = ref(false)
 const submitting = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<Api.Product.ProductItem[]>([])
 const categoryOptions = ref<Api.Product.Category[]>([])
 const dialogVisible = ref(false)
 
@@ -286,22 +303,26 @@ const searchForm = ref({
 })
 const pagination = ref({ current: 1, size: 10, total: 0 })
 
-const formData = ref({
-  id: undefined as number | undefined,
-  name: '',
-  description: '',
-  categoryId: undefined as number | undefined,
-  price: 0,
-  discountPrice: undefined as number | undefined,
-  skuCode: '',
-  mainImage: '',
-  posterImage: '',
-  detailImage: '',
-  images: [] as string[],
-  skus: [] as any[],
-  status: 1,
-  sort: 0
-})
+function createDefaultFormData(): ProductFormData {
+  return {
+    id: undefined,
+    name: '',
+    description: '',
+    categoryId: undefined,
+    price: 0,
+    discountPrice: undefined,
+    skuCode: '',
+    mainImage: '',
+    posterImage: '',
+    detailImage: '',
+    images: [],
+    skus: [],
+    status: 1,
+    sort: 0
+  }
+}
+
+const formData = ref<ProductFormData>(createDefaultFormData())
 
 const isEdit = computed(() => !!formData.value.id)
 
@@ -363,7 +384,7 @@ const { columns, columnChecks } = useTableColumns(() => [
   {
     prop: 'operation',
     label: '操作',
-    width: 120,
+    width: 180,
     fixed: 'right',
     formatter: (row: any) =>
       h('div', [
@@ -374,6 +395,14 @@ const { columns, columnChecks } = useTableColumns(() => [
             onClick: () => openDialog(row.id)
           },
           '编辑'
+        ),
+        h(
+          'button',
+          {
+            class: 'el-button el-button--danger is-link',
+            onClick: () => handleDelete(row)
+          },
+          '删除'
         )
       ])
   }
@@ -466,22 +495,7 @@ async function openDialog(id?: number) {
 
 // 重置表单
 function resetForm() {
-  formData.value = {
-    id: undefined,
-    name: '',
-    description: '',
-    categoryId: undefined,
-    price: 0,
-    discountPrice: undefined,
-    skuCode: '',
-    mainImage: '',
-    posterImage: '',
-    detailImage: '',
-    images: [],
-    skus: [],
-    status: 1,
-    sort: 0
-  }
+  formData.value = createDefaultFormData()
 }
 
 // 上传图片
@@ -537,8 +551,9 @@ function addSku() {
 
 // 提交表单
 async function handleSubmit() {
-  if (!formData.value.name) return ElMessage.warning('请输入商品名称')
-  if (!formData.value.price) return ElMessage.warning('请输入商品价格')
+  if (!formData.value.name.trim()) return ElMessage.warning('请输入商品名称')
+  if (formData.value.categoryId === undefined) return ElMessage.warning('请选择商品分类')
+  if (formData.value.price === undefined || formData.value.price === null) return ElMessage.warning('请输入商品价格')
 
   submitting.value = true
   try {

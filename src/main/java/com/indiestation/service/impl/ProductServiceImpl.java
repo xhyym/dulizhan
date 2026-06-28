@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.indiestation.entity.Category;
 import com.indiestation.entity.Product;
 import com.indiestation.entity.ProductImage;
 import com.indiestation.entity.ProductSku;
 import com.indiestation.entity.dto.ProductDTO;
 import com.indiestation.exception.BusinessException;
+import com.indiestation.mapper.CategoryMapper;
 import com.indiestation.mapper.ProductImageMapper;
 import com.indiestation.mapper.ProductMapper;
 import com.indiestation.mapper.ProductSkuMapper;
@@ -22,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,6 +36,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
 
+    private final CategoryMapper categoryMapper;
     private final ProductImageMapper productImageMapper;
     private final ProductSkuMapper productSkuMapper;
 
@@ -44,7 +48,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             wrapper.like(Product::getName, name);
         }
         if (categoryId != null) {
-            wrapper.eq(Product::getCategoryId, categoryId);
+            List<Long> categoryIds = getAllChildCategoryIds(categoryId);
+            categoryIds.add(categoryId);
+            wrapper.in(Product::getCategoryId, categoryIds);
         }
         if (status != null) {
             wrapper.eq(Product::getStatus, status);
@@ -228,6 +234,28 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             sku.setStock(skuDTO.getStock());
             sku.setStatus(skuDTO.getStatus());
             productSkuMapper.insert(sku);
+        }
+    }
+
+    /**
+     * 递归收集当前分类下的所有子分类ID
+     */
+    private List<Long> getAllChildCategoryIds(Long parentId) {
+        List<Category> allCategories = categoryMapper.selectList(new LambdaQueryWrapper<>());
+        List<Long> categoryIds = new ArrayList<>();
+        collectChildIds(allCategories, parentId, categoryIds);
+        return categoryIds;
+    }
+
+    /**
+     * 递归遍历分类树，收集子分类ID
+     */
+    private void collectChildIds(List<Category> allCategories, Long parentId, List<Long> categoryIds) {
+        for (Category category : allCategories) {
+            if (parentId.equals(category.getParentId())) {
+                categoryIds.add(category.getId());
+                collectChildIds(allCategories, category.getId(), categoryIds);
+            }
         }
     }
 }

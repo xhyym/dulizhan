@@ -39,4 +39,9 @@ public interface InquiryService extends IService<Inquiry> {
      * 更新询盘状态
      */
     void updateStatus(Long id, Integer status, String adminRemark);
+
+    /**
+     * 校验询盘状态流转是否合法
+     */
+    void validateStatusTransition(Integer currentStatus, Integer targetStatus);
 }

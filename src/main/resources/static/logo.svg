@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 180" fill="none">
+
+  <!-- OSEN -->
+  <text x="50" y="78"
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="48"
+        font-weight="700"
+        letter-spacing="12"
+        fill="#1A1A1A">OSEN</text>
+
+  <!-- FURNITURE -->
+  <text x="53" y="108"
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="13"
+        font-weight="400"
+        letter-spacing="8"
+        fill="#888888">FURNITURE</text>
+
+  <!-- 分隔线 -->
+  <line x1="50" y1="122" x2="360" y2="122" stroke="#C9A96E" stroke-width="1"/>
+
+  <!-- 副标语 -->
+  <text x="50" y="145"
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="10"
+        font-weight="300"
+        letter-spacing="6"
+        fill="#BBBBBB">LIVING BEYOND ORDINARY</text>
+
+  <!-- 底部细线装饰 -->
+  <line x1="10" y1="165" x2="590" y2="165" stroke="#E0E0E0" stroke-width="0.5"/>
+
+</svg>

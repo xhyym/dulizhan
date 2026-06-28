@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { parseBannerImages } from "@/lib/site-config";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -30,7 +31,7 @@ export default function ClientBanner({
           return;
         }
         try {
-          const images = JSON.parse(config.banner_images) as string[];
+          const images = parseBannerImages(config.banner_images);
           if (!images.length) {
             setError("站点配置错误: banner_images 数组为空");
             return;

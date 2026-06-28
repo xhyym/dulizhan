@@ -1,62 +1,62 @@
 <!-- 登录页面 -->
 <template>
-  <div class="flex w-full h-screen">
-    <LoginLeftView />
-
-    <div class="relative flex-1">
+  <div class="login-page">
+    <div class="login-stage">
       <AuthTopBar />
 
       <div class="auth-right-wrap">
-        <div class="form">
-          <h3 class="title">{{ $t('login.title') }}</h3>
-          <p class="sub-title">{{ $t('login.subTitle') }}</p>
-          <ElForm
-            ref="formRef"
-            :model="formData"
-            :rules="rules"
-            :key="formKey"
-            @keyup.enter="handleSubmit"
-            style="margin-top: 25px"
-          >
-            <ElFormItem prop="username">
-              <ElInput
-                class="custom-height"
-                :placeholder="$t('login.placeholder.username')"
-                v-model.trim="formData.username"
-              />
-            </ElFormItem>
-            <ElFormItem prop="password">
-              <ElInput
-                class="custom-height"
-                :placeholder="$t('login.placeholder.password')"
-                v-model.trim="formData.password"
-                type="password"
-                autocomplete="off"
-                show-password
-              />
-            </ElFormItem>
+        <div class="login-card">
+          <div class="form">
+            <h3 class="title">{{ $t('login.title') }}</h3>
+            <p class="sub-title">{{ $t('login.subTitle') }}</p>
+            <ElForm
+              ref="formRef"
+              :model="formData"
+              :rules="rules"
+              :key="formKey"
+              @keyup.enter="handleSubmit"
+              class="login-form"
+            >
+              <ElFormItem prop="username">
+                <ElInput
+                  class="custom-height"
+                  :placeholder="$t('login.placeholder.username')"
+                  v-model.trim="formData.username"
+                />
+              </ElFormItem>
+              <ElFormItem prop="password">
+                <ElInput
+                  class="custom-height"
+                  :placeholder="$t('login.placeholder.password')"
+                  v-model.trim="formData.password"
+                  type="password"
+                  autocomplete="off"
+                  show-password
+                />
+              </ElFormItem>
 
-            <div class="flex-cb mt-2 text-sm">
-              <ElCheckbox v-model="formData.rememberPassword">{{
-                $t('login.rememberPwd')
-              }}</ElCheckbox>
-              <ElButton type="primary" link @click="fillDemoAccount">
-                体验账号
-              </ElButton>
-            </div>
+              <div class="flex-cb mt-2 text-sm">
+                <ElCheckbox v-model="formData.rememberPassword">{{
+                  $t('login.rememberPwd')
+                }}</ElCheckbox>
+                <ElButton type="primary" link @click="fillDemoAccount">
+                  体验账号
+                </ElButton>
+              </div>
 
-            <div style="margin-top: 30px">
-              <ElButton
-                class="w-full custom-height"
-                type="primary"
-                @click="handleSubmit"
-                :loading="loading"
-                v-ripple
-              >
-                {{ $t('login.btnText') }}
-              </ElButton>
-            </div>
-          </ElForm>
+              <div style="margin-top: 30px">
+                <ElButton
+                  class="w-full custom-height"
+                  type="primary"
+                  @click="handleSubmit"
+                  :loading="loading"
+                  v-ripple
+                >
+                  {{ $t('login.btnText') }}
+                </ElButton>
+              </div>
+            </ElForm>
+          </div>
         </div>
       </div>
     </div>

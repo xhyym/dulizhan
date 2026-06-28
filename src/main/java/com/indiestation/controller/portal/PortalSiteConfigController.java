@@ -26,7 +26,7 @@ public class PortalSiteConfigController {
      */
     @GetMapping
     public Result<Map<String, String>> getPublicConfig() {
-        Map<String, String> config = siteConfigService.getAllConfig();
+        Map<String, String> config = siteConfigService.getPublicConfig();
         return Result.success(config);
     }
 }

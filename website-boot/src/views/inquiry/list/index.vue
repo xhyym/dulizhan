@@ -40,6 +40,116 @@
         @pagination:current-change="handleCurrentChange"
       />
     </ElCard>
+
+    <ElDialog v-model="detailVisible" title="询盘详情" width="980px">
+      <div v-if="currentInquiry" class="inquiry-detail" v-loading="detailLoading">
+        <ElDescriptions :column="2" border>
+          <ElDescriptionsItem label="询盘编号">{{ currentInquiry.inquiryNo }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="状态">
+            <ElTag :type="statusConfig[currentInquiry.status]?.type ?? 'info'">
+              {{ statusConfig[currentInquiry.status]?.text ?? '未知' }}
+            </ElTag>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="客户名称">{{ currentInquiry.userName || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="客户邮箱">{{ currentInquiry.userEmail || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="WhatsApp">{{ currentInquiry.userWhatsapp || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="总金额">¥{{ currentInquiry.totalAmount }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="创建时间">{{ currentInquiry.createTime }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="更新时间">{{ currentInquiry.updateTime }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="客户备注" :span="2">{{ currentInquiry.remark || '-' }}</ElDescriptionsItem>
+        </ElDescriptions>
+
+        <div class="detail-section">
+          <div class="section-title">商品明细</div>
+          <ElTable :data="currentInquiry.items || []" border size="small">
+            <ElTableColumn prop="productName" label="商品名称" min-width="220" show-overflow-tooltip />
+            <ElTableColumn prop="skuSpec" label="规格" min-width="160" show-overflow-tooltip>
+              <template #default="{ row }">{{ row.skuSpec || '-' }}</template>
+            </ElTableColumn>
+            <ElTableColumn prop="price" label="单价" width="120" align="right">
+              <template #default="{ row }">¥{{ row.price }}</template>
+            </ElTableColumn>
+            <ElTableColumn prop="quantity" label="数量" width="90" align="center" />
+            <ElTableColumn label="小计" width="140" align="right">
+              <template #default="{ row }">¥{{ Number(row.price) * Number(row.quantity) }}</template>
+            </ElTableColumn>
+          </ElTable>
+        </div>
+
+        <div class="detail-section">
+          <div class="section-title">管理员备注</div>
+          <ElInput
+            v-model="remarkForm.adminRemark"
+            type="textarea"
+            :rows="4"
+            maxlength="500"
+            show-word-limit
+            placeholder="请输入管理员备注"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <ElButton @click="detailVisible = false">关闭</ElButton>
+        <ElButton
+          v-if="currentInquiry"
+          type="primary"
+          plain
+          :loading="actionLoading"
+          @click="handleSaveRemark"
+        >
+          保存备注
+        </ElButton>
+        <ElButton
+          v-if="currentInquiry"
+          type="success"
+          plain
+          @click="handleGeneratePdf(currentInquiry)"
+        >
+          生成下发单
+        </ElButton>
+        <ElButton
+          v-if="currentInquiry && currentInquiry.status === 0"
+          type="primary"
+          :loading="actionLoading"
+          @click="handleStatusUpdate(1)"
+        >
+          标记已联系
+        </ElButton>
+        <ElButton
+          v-if="currentInquiry && currentInquiry.status === 1"
+          type="success"
+          :loading="actionLoading"
+          @click="handleStatusUpdate(2)"
+        >
+          标记已完成
+        </ElButton>
+        <ElButton
+          v-if="currentInquiry && (currentInquiry.status === 0 || currentInquiry.status === 1)"
+          type="danger"
+          :loading="actionLoading"
+          @click="handleStatusUpdate(3)"
+        >
+          取消询盘
+        </ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="remarkDialogVisible" title="修改备注" width="560px">
+      <ElInput
+        v-model="remarkForm.adminRemark"
+        type="textarea"
+        :rows="5"
+        maxlength="500"
+        show-word-limit
+        placeholder="请输入管理员备注"
+      />
+
+      <template #footer>
+        <ElButton @click="remarkDialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="actionLoading" @click="handleSaveRemark">保存备注</ElButton>
+      </template>
+    </ElDialog>
   </div>
 </template>
 
@@ -47,15 +157,23 @@
 import { h } from 'vue'
 import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
-import { fetchGetInquiryList, fetchUpdateInquiryStatus, fetchGenerateInquiryPdf } from '@/api/inquiry'
+import { fetchGetInquiryList, fetchGetInquiryDetail, fetchUpdateInquiryStatus, fetchGenerateInquiryPdf } from '@/api/inquiry'
 import FileSaver from 'file-saver'
+import { useRouter } from 'vue-router'
 
 defineOptions({ name: 'InquiryList' })
 
 type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
 
 const loading = ref(false)
-const tableData = ref<any[]>([])
+const detailLoading = ref(false)
+const actionLoading = ref(false)
+const tableData = ref<Api.Inquiry.Inquiry[]>([])
+const detailVisible = ref(false)
+const remarkDialogVisible = ref(false)
+const currentInquiry = ref<Api.Inquiry.Inquiry | null>(null)
+const remarkForm = ref({ adminRemark: '' })
+const router = useRouter()
 
 const searchForm = ref({ inquiryNo: '', userName: '', status: undefined as number | undefined })
 const pagination = ref({ current: 1, size: 10, total: 0 })
@@ -70,15 +188,45 @@ const statusConfig: Record<number, { type: TagType; text: string }> = {
 // 列配置
 const { columns, columnChecks } = useTableColumns(() => [
   { prop: 'inquiryNo', label: '询盘编号', width: 180 },
-  { prop: 'userName', label: '用户名', width: 120 },
+  {
+    prop: 'userName',
+    label: '客户名称',
+    width: 120,
+    formatter: (row: Api.Inquiry.Inquiry) =>
+      h('button', {
+        class: 'el-button el-button--primary is-link',
+        onClick: () => openCustomerDetail(row.userId)
+      }, row.userName || '-')
+  },
   { prop: 'userEmail', label: '邮箱', minWidth: 180, showOverflowTooltip: true },
   { prop: 'userWhatsapp', label: 'WhatsApp', width: 140 },
+  {
+    prop: 'totalQuantity',
+    label: '商品总数量',
+    width: 110,
+    align: 'center',
+    formatter: (row: Api.Inquiry.Inquiry) => row.totalQuantity ?? 0
+  },
   {
     prop: 'totalAmount',
     label: '总金额',
     width: 100,
     align: 'right',
     formatter: (row: any) => `¥${row.totalAmount}`
+  },
+  {
+    prop: 'remark',
+    label: '客户备注',
+    minWidth: 180,
+    showOverflowTooltip: true,
+    formatter: (row: Api.Inquiry.Inquiry) => row.remark?.trim() || '-'
+  },
+  {
+    prop: 'adminRemark',
+    label: '管理员备注',
+    minWidth: 180,
+    showOverflowTooltip: true,
+    formatter: (row: Api.Inquiry.Inquiry) => row.adminRemark?.trim() || '-'
   },
   {
     prop: 'status',
@@ -94,25 +242,48 @@ const { columns, columnChecks } = useTableColumns(() => [
   {
     prop: 'operation',
     label: '操作',
-    width: 200,
+    width: 360,
     fixed: 'right',
     formatter: (row: any) => {
       const buttons = []
 
-      // 生成转换单按钮
       buttons.push(
         h('button', {
           class: 'el-button el-button--primary is-link',
-          onClick: () => handleGeneratePdf(row)
-        }, '生成转换单')
+          onClick: () => showDetail(row.id)
+        }, '查看详情')
       )
 
-      // 取消询盘按钮（只有待处理和已联系状态可以取消）
+      buttons.push(
+        h('button', {
+          class: 'el-button el-button--warning is-link',
+          onClick: () => openRemarkDialog(row)
+        }, '修改备注')
+      )
+
+      if (row.status === 0) {
+        buttons.push(
+          h('button', {
+            class: 'el-button el-button--primary is-link',
+            onClick: () => handleQuickStatusUpdate(row, 1)
+          }, '标记已联系')
+        )
+      }
+
+      if (row.status === 1) {
+        buttons.push(
+          h('button', {
+            class: 'el-button el-button--success is-link',
+            onClick: () => handleQuickStatusUpdate(row, 2)
+          }, '标记已完成')
+        )
+      }
+
       if (row.status === 0 || row.status === 1) {
         buttons.push(
           h('button', {
             class: 'el-button el-button--danger is-link',
-            onClick: () => handleCancel(row)
+            onClick: () => handleQuickStatusUpdate(row, 3)
           }, '取消')
         )
       }
@@ -154,12 +325,93 @@ function resetSearch() {
   loadData()
 }
 
-// 取消询盘
-async function handleCancel(row: any) {
-  await ElMessageBox.confirm(`确定取消询盘「${row.inquiryNo}」吗？`, '提示', { type: 'warning' })
-  await fetchUpdateInquiryStatus(row.id, { status: 3 })
-  ElMessage.success('已取消')
-  loadData()
+async function showDetail(id: number) {
+  detailLoading.value = true
+  try {
+    const data = await fetchGetInquiryDetail(id)
+    currentInquiry.value = data
+    remarkForm.value.adminRemark = data.adminRemark || ''
+    detailVisible.value = true
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+function openRemarkDialog(row: Api.Inquiry.Inquiry) {
+  currentInquiry.value = row
+  remarkForm.value.adminRemark = row.adminRemark || ''
+  remarkDialogVisible.value = true
+}
+
+async function handleSaveRemark() {
+  if (!currentInquiry.value) return
+
+  actionLoading.value = true
+  try {
+    await fetchUpdateInquiryStatus(currentInquiry.value.id, {
+      status: currentInquiry.value.status,
+      adminRemark: remarkForm.value.adminRemark.trim() || undefined
+    })
+    ElMessage.success('备注保存成功')
+    remarkDialogVisible.value = false
+    if (detailVisible.value) {
+      await showDetail(currentInquiry.value.id)
+    }
+    await loadData()
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+function openCustomerDetail(userId: number) {
+  router.push(`/inquiry/customer?userId=${userId}`)
+}
+
+async function handleStatusUpdate(status: number) {
+  if (!currentInquiry.value) return
+
+  const actionTextMap: Record<number, string> = {
+    1: '将该询盘标记为已联系',
+    2: '将该询盘标记为已完成',
+    3: '取消该询盘'
+  }
+
+  await ElMessageBox.confirm(`确定${actionTextMap[status]}吗？`, '提示', { type: 'warning' })
+
+  actionLoading.value = true
+  try {
+    await fetchUpdateInquiryStatus(currentInquiry.value.id, {
+      status,
+      adminRemark: remarkForm.value.adminRemark.trim() || undefined
+    })
+    ElMessage.success('状态更新成功')
+    await showDetail(currentInquiry.value.id)
+    await loadData()
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function handleQuickStatusUpdate(row: Api.Inquiry.Inquiry, status: number) {
+  const actionTextMap: Record<number, string> = {
+    1: '将该询盘标记为已联系',
+    2: '将该询盘标记为已完成',
+    3: '取消该询盘'
+  }
+
+  await ElMessageBox.confirm(`确定${actionTextMap[status]}吗？`, '提示', { type: 'warning' })
+
+  actionLoading.value = true
+  try {
+    await fetchUpdateInquiryStatus(row.id, {
+      status,
+      adminRemark: row.adminRemark?.trim() || undefined
+    })
+    ElMessage.success('状态更新成功')
+    await loadData()
+  } finally {
+    actionLoading.value = false
+  }
 }
 
 // 生成转换单 PDF
@@ -197,6 +449,19 @@ onMounted(() => loadData())
   :deep(.el-button) {
     height: 32px;
     padding: 0 15px;
+  }
+}
+
+.inquiry-detail {
+  .detail-section {
+    margin-top: 20px;
+  }
+
+  .section-title {
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #303133;
   }
 }
 </style>

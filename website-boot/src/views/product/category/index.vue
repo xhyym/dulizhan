@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
 import { fetchGetCategoryList, fetchCreateCategory, fetchUpdateCategory, fetchDeleteCategory } from '@/api/product'
@@ -99,7 +99,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
-const tableData = ref<any[]>([])
+const tableData = ref<Api.Product.Category[]>([])
 
 // 搜索表单
 const searchForm = ref({ name: '', status: undefined as number | undefined })
@@ -119,7 +119,7 @@ const filteredData = computed(() => {
 })
 
 // 递归过滤树形数据
-function filterTree(tree: any[], predicate: (item: any) => boolean): any[] {
+function filterTree(tree: Api.Product.Category[], predicate: (item: Api.Product.Category) => boolean): Api.Product.Category[] {
   return tree
     .map((item) => {
       const children = item.children ? filterTree(item.children, predicate) : []
@@ -129,7 +129,7 @@ function filterTree(tree: any[], predicate: (item: any) => boolean): any[] {
 }
 
 // 表单数据
-const formData = ref({
+const formData = ref<Api.Product.CategoryDTO>({
   id: undefined as number | undefined,
   name: '',
   image: '',
@@ -210,6 +210,11 @@ function showDialog(type: 'add' | 'edit', row?: any) {
 }
 
 async function handleSubmit() {
+  if (!formData.value.name.trim()) {
+    ElMessage.warning('请输入分类名称')
+    return
+  }
+
   submitting.value = true
   try {
     if (dialogType.value === 'add') {
@@ -236,7 +241,7 @@ async function handleImageUpload(options: any) {
 }
 
 async function handleDelete(row: any) {
-  await ElMessageBox.confirm('确定删除该分类吗？', '提示', { type: 'warning' })
+  await ElMessageBox.confirm(`确定删除分类「${row.name}」吗？若该分类下仍有子分类或商品，将无法删除。`, '提示', { type: 'warning' })
   await fetchDeleteCategory(row.id)
   ElMessage.success('删除成功')
   loadData()

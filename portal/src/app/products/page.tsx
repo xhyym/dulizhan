@@ -1,6 +1,34 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { portalAPI, Product, Category } from "@/lib/api";
 import PageBanner from "@/components/ui/PageBanner";
+import { buildProductsPageMetadata } from "@/lib/seo";
+import { findCategoryName } from "@/lib/site-config";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; keyword?: string }>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const categoryId = params.category ? Number(params.category) : undefined;
+  const keyword = params.keyword?.trim();
+
+  const [siteConfig, categories] = await Promise.all([
+    portalAPI.getSiteConfig().catch(() => null),
+    portalAPI.getCategories().catch(() => []),
+  ]);
+
+  if (!siteConfig) {
+    return {
+      title: "Products | OSEN FURNITURE",
+      description: "Browse the furniture collection of OSEN FURNITURE.",
+    };
+  }
+
+  const categoryName = categoryId ? findCategoryName(categories, categoryId) : "";
+  return buildProductsPageMetadata(siteConfig, { categoryName, categoryId, keyword });
+}
 
 export default async function ProductsPage({
   searchParams,

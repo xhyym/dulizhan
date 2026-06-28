@@ -23,6 +23,11 @@ public interface SiteConfigService extends IService<SiteConfig> {
     Map<String, String> getConfigMap();
 
     /**
+     * 获取门户公开配置
+     */
+    Map<String, String> getPublicConfig();
+
+    /**
      * 批量更新配置
      */
     void updateConfig(Map<String, String> configMap);

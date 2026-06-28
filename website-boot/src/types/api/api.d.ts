@@ -142,6 +142,7 @@ declare namespace Api {
     interface Category {
       id: number
       name: string
+      image?: string
       parentId: number
       sort: number
       status: number
@@ -154,6 +155,7 @@ declare namespace Api {
     interface CategoryDTO {
       id?: number
       name: string
+      image?: string
       parentId?: number
       sort?: number
       status?: number
@@ -256,6 +258,19 @@ declare namespace Api {
 
   /** 询盘管理类型 */
   namespace Inquiry {
+    /** 询盘商品明细 */
+    interface InquiryItem {
+      id: number
+      inquiryId: number
+      productId: number
+      productName: string
+      productImage: string
+      skuId?: number
+      skuSpec?: string
+      price: number
+      quantity: number
+    }
+
     /** 询盘 */
     interface Inquiry {
       id: number
@@ -270,6 +285,8 @@ declare namespace Api {
       adminRemark: string
       createTime: string
       updateTime: string
+      totalQuantity?: number
+      items?: InquiryItem[]
     }
 
     /** 询盘列表响应 */

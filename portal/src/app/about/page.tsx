@@ -1,5 +1,32 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
+import { buildAboutPageMetadata } from "@/lib/seo";
+import { parseConfigJson } from "@/lib/site-config";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
+
+  if (!siteConfig) {
+    return {
+      title: "About Us | OSEN FURNITURE",
+      description: "Learn more about OSEN FURNITURE and our furniture craftsmanship philosophy.",
+    };
+  }
+
+  const aboutData = parseConfigJson<Record<string, unknown>>(siteConfig.about_us, {});
+
+  return buildAboutPageMetadata(siteConfig, {
+    storyTitle: typeof aboutData.storyTitle === "string" ? aboutData.storyTitle : undefined,
+    storyContent: typeof aboutData.storyContent === "string" ? aboutData.storyContent : undefined,
+    imageUrl:
+      typeof aboutData.bannerImage === "string"
+        ? aboutData.bannerImage
+        : typeof aboutData.storyImage === "string"
+          ? aboutData.storyImage
+          : undefined,
+  });
+}
 
 export default async function AboutPage() {
   const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
@@ -12,10 +39,8 @@ export default async function AboutPage() {
     );
   }
 
-  let aboutData: any;
-  try {
-    aboutData = JSON.parse(siteConfig.about_us);
-  } catch {
+  const aboutData = parseConfigJson<Record<string, unknown> | null>(siteConfig.about_us, null);
+  if (!aboutData) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <p className="text-red-500 text-lg">站点配置错误: about_us JSON 格式异常</p>
@@ -23,7 +48,31 @@ export default async function AboutPage() {
     );
   }
 
-  const { bannerImage, storyImage, storyTitle, storyContent, philosophy, craftImage, craftTitle, craftContent, stats, ctaText, ctaButtonText } = aboutData;
+  const {
+    bannerImage,
+    storyImage,
+    storyTitle,
+    storyContent,
+    philosophy,
+    craftImage,
+    craftTitle,
+    craftContent,
+    stats,
+    ctaText,
+    ctaButtonText,
+  } = aboutData as {
+    bannerImage?: string;
+    storyImage?: string;
+    storyTitle?: string;
+    storyContent?: string;
+    philosophy?: Array<{ icon: string; title: string; desc: string }>;
+    craftImage?: string;
+    craftTitle?: string;
+    craftContent?: string;
+    stats?: Array<{ number: string; label: string }>;
+    ctaText?: string;
+    ctaButtonText?: string;
+  };
 
   // 校验必填字段
   const missing: string[] = [];
@@ -47,6 +96,18 @@ export default async function AboutPage() {
     );
   }
 
+  const philosophyItems = philosophy ?? [];
+  const statsItems = stats ?? [];
+  const safeBannerImage = bannerImage ?? "";
+  const safeStoryImage = storyImage ?? "";
+  const safeStoryTitle = storyTitle ?? "";
+  const safeStoryContent = storyContent ?? "";
+  const safeCraftImage = craftImage ?? "";
+  const safeCraftTitle = craftTitle ?? "";
+  const safeCraftContent = craftContent ?? "";
+  const safeCtaText = ctaText ?? "";
+  const safeCtaButtonText = ctaButtonText ?? "";
+
   return (
     <>
       {/* Banner */}
@@ -56,7 +117,7 @@ export default async function AboutPage() {
           style={{
             background: `
               linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
-              url(${bannerImage}) center/cover no-repeat
+              url(${safeBannerImage}) center/cover no-repeat
             `,
           }}
         />
@@ -77,13 +138,13 @@ export default async function AboutPage() {
       <section className="py-30 px-6 md:px-15">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-20 max-w-[1200px] mx-auto items-center">
           <div className="aspect-[4/5] overflow-hidden">
-            <img src={storyImage} alt={storyTitle} className="w-full h-full object-cover" />
+            <img src={safeStoryImage} alt={safeStoryTitle} className="w-full h-full object-cover" />
           </div>
           <div>
             <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase mb-6 text-left">
-              {storyTitle}
+              {safeStoryTitle}
             </h2>
-            <p className="text-sm font-light leading-[1.8] text-muted">{storyContent}</p>
+            <p className="text-sm font-light leading-[1.8] text-muted">{safeStoryContent}</p>
           </div>
         </div>
       </section>
@@ -94,7 +155,7 @@ export default async function AboutPage() {
           Our Philosophy
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-[1200px] mx-auto">
-          {philosophy.map((item: any, index: number) => (
+          {philosophyItems.map((item, index: number) => (
             <div key={index} className="text-center">
               <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center">
                 <PhilosophyIcon icon={item.icon} />
@@ -110,11 +171,11 @@ export default async function AboutPage() {
       <section className="py-30 px-6 md:px-15">
         <div className="max-w-[1200px] mx-auto">
           <div className="aspect-[16/9] overflow-hidden mb-10">
-            <img src={craftImage} alt={craftTitle} className="w-full h-full object-cover" />
+            <img src={safeCraftImage} alt={safeCraftTitle} className="w-full h-full object-cover" />
           </div>
           <div className="max-w-[600px] mx-auto text-center">
-            <h2 className="text-2xl font-light tracking-[6px] uppercase mb-6">{craftTitle}</h2>
-            <p className="text-sm font-light leading-[1.8] text-muted">{craftContent}</p>
+            <h2 className="text-2xl font-light tracking-[6px] uppercase mb-6">{safeCraftTitle}</h2>
+            <p className="text-sm font-light leading-[1.8] text-muted">{safeCraftContent}</p>
           </div>
         </div>
       </section>
@@ -122,7 +183,7 @@ export default async function AboutPage() {
       {/* Stats */}
       <section className="py-20 px-6 md:px-15 bg-[#1a1a1a] text-white">
         <div className="grid grid-cols-3 gap-10 max-w-[800px] mx-auto text-center">
-          {stats.map((stat: any, index: number) => (
+          {statsItems.map((stat, index: number) => (
             <div key={index}>
               <p className="text-3xl md:text-4xl font-light tracking-wider mb-2">{stat.number}</p>
               <p className="text-sm font-light tracking-wider text-white/60 uppercase">{stat.label}</p>
@@ -133,12 +194,12 @@ export default async function AboutPage() {
 
       {/* CTA */}
       <section className="py-30 px-6 md:px-15 text-center">
-        <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase mb-8">{ctaText}</h2>
+        <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase mb-8">{safeCtaText}</h2>
         <Link
           href="/products"
           className="inline-block px-12 py-4 text-[13px] font-medium tracking-[3px] uppercase bg-[#1a1a1a] text-white hover:bg-[#333] transition-all duration-300"
         >
-          {ctaButtonText}
+          {safeCtaButtonText}
         </Link>
       </section>
     </>

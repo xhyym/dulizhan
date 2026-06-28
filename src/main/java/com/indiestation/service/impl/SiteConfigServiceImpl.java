@@ -8,8 +8,10 @@ import com.indiestation.service.SiteConfigService;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 系统配置服务实现
@@ -18,6 +20,25 @@ import java.util.Map;
  */
 @Service
 public class SiteConfigServiceImpl extends ServiceImpl<SiteConfigMapper, SiteConfig> implements SiteConfigService {
+
+    /**
+     * 门户允许公开读取的配置白名单。
+     */
+    private static final Set<String> PUBLIC_CONFIG_KEYS = new LinkedHashSet<>() {{
+        add("site_title");
+        add("site_logo");
+        add("contact_email");
+        add("contact_whatsapp");
+        add("hero_tagline");
+        add("hero_title");
+        add("hero_subtitle");
+        add("banner_images");
+        add("footer_info");
+        add("social_links");
+        add("seo_config");
+        add("analytics_config");
+        add("about_us");
+    }};
 
     @Override
     public Map<String, String> getAllConfig() {
@@ -32,6 +53,19 @@ public class SiteConfigServiceImpl extends ServiceImpl<SiteConfigMapper, SiteCon
     @Override
     public Map<String, String> getConfigMap() {
         return getAllConfig();
+    }
+
+    @Override
+    public Map<String, String> getPublicConfig() {
+        List<SiteConfig> configs = list(
+                new LambdaQueryWrapper<SiteConfig>()
+                        .in(SiteConfig::getConfigKey, PUBLIC_CONFIG_KEYS)
+        );
+        Map<String, String> map = new HashMap<>();
+        for (SiteConfig config : configs) {
+            map.put(config.getConfigKey(), config.getConfigValue());
+        }
+        return map;
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.indiestation.entity.dto;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -21,10 +23,14 @@ public class ProductDTO {
 
     private String description;
 
+    @NotNull(message = "商品分类不能为空")
     private Long categoryId;
 
+    @NotNull(message = "商品价格不能为空")
+    @DecimalMin(value = "0.00", message = "商品价格不能小于0")
     private BigDecimal price;
 
+    @DecimalMin(value = "0.00", message = "商品折后价不能小于0")
     private BigDecimal discountPrice;
 
     private String skuCode;

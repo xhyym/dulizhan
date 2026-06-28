@@ -3,7 +3,7 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${DB_NAME:indie_station}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${DB_HOST:mysql}:33060/indie_station?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
 
@@ -18,12 +18,6 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
-
-# 文件上传路径
-file:
-  upload:
-    path: /app/uploads/
-    url-prefix: ${FILE_URL_PREFIX:http://localhost:8080/uploads/}
 
 # Cloudflare R2 配置
 r2:

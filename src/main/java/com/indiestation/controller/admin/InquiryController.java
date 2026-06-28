@@ -5,15 +5,16 @@ import com.indiestation.common.PageResult;
 import com.indiestation.common.Result;
 import com.indiestation.entity.Inquiry;
 import com.indiestation.entity.InquiryItem;
+import com.indiestation.entity.dto.InquiryStatusUpdateDTO;
 import com.indiestation.service.InquiryService;
 import com.indiestation.service.PdfService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 询盘管理控制器
@@ -59,10 +60,8 @@ public class InquiryController {
      * 更新询盘状态
      */
     @PutMapping("/{id}/status")
-    public Result<Void> updateStatus(@PathVariable Long id, @RequestBody Map<String, Object> params) {
-        Integer status = (Integer) params.get("status");
-        String adminRemark = (String) params.get("adminRemark");
-        inquiryService.updateStatus(id, status, adminRemark);
+    public Result<Void> updateStatus(@PathVariable Long id, @Valid @RequestBody InquiryStatusUpdateDTO dto) {
+        inquiryService.updateStatus(id, dto.getStatus(), dto.getAdminRemark());
         return Result.success();
     }
 
@@ -72,13 +71,7 @@ public class InquiryController {
     @GetMapping("/{id}/pdf")
     public void generatePdf(@PathVariable Long id, HttpServletResponse response) throws IOException {
         Inquiry inquiry = inquiryService.getInquiryDetail(id);
-        if (inquiry == null) {
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"code\":404,\"message\":\"询盘不存在\"}");
-            return;
-        }
-
-        List<InquiryItem> items = inquiryService.getInquiryItems(id);
+        List<InquiryItem> items = inquiry.getItems();
 
         response.setContentType("application/pdf");
         response.setHeader("Content-Disposition", "attachment; filename=inquiry_" + inquiry.getInquiryNo() + ".pdf");

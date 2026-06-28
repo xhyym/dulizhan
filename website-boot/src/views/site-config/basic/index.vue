@@ -93,3 +93,19 @@ async function handleSave() {
 
 onMounted(() => loadData())
 </script>
+
+<style scoped lang="scss">
+.site-basic {
+  :deep(.el-card) {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.el-card__body) {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+</style>

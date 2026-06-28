@@ -1,5 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
+import { buildContactPageMetadata } from "@/lib/seo";
+import { parseConfigJson } from "@/lib/site-config";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
+
+  if (!siteConfig) {
+    return {
+      title: "Contact Us | OSEN FURNITURE",
+      description: "Contact OSEN FURNITURE for furniture catalogs, quotations and customization support.",
+    };
+  }
+
+  return buildContactPageMetadata(siteConfig);
+}
 
 export default async function ContactPage() {
   const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
@@ -30,14 +46,7 @@ export default async function ContactPage() {
     );
   }
 
-  let socialLinks: Record<string, string> = {};
-  if (siteConfig.social_links) {
-    try {
-      socialLinks = JSON.parse(siteConfig.social_links);
-    } catch {
-      // 社交链接解析失败不影响页面展示
-    }
-  }
+  const socialLinks = parseConfigJson<Record<string, string>>(siteConfig.social_links, {});
 
   const socialLabels: Record<string, string> = {
     facebook: "Facebook",

@@ -12,7 +12,7 @@
     </parent>
 
     <groupId>com.indiestation</groupId>
-    <artifactId>admin-boot</artifactId>
+    <artifactId>dulizhan</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>admin-boot</name>
     <description>独立站后台管理系统 - Java Backend</description>

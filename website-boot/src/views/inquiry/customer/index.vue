@@ -68,6 +68,11 @@
             </template>
           </ElTableColumn>
           <ElTableColumn prop="createTime" label="创建时间" />
+          <ElTableColumn label="操作" width="100" align="center">
+            <template #default="{ row }">
+              <ElButton type="primary" link @click="openInquiryDetail(row.id)">查看详情</ElButton>
+            </template>
+          </ElTableColumn>
         </ElTable>
       </div>
     </ElDialog>
@@ -78,7 +83,8 @@
 import { h } from 'vue'
 import { ElTag } from 'element-plus'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
-import { fetchGetUserList, fetchGetUserInquiries } from '@/api/user'
+import { fetchGetUserList, fetchGetUserDetail, fetchGetUserInquiries } from '@/api/user'
+import { useRoute, useRouter } from 'vue-router'
 
 defineOptions({ name: 'CustomerList' })
 
@@ -90,6 +96,8 @@ const tableData = ref<any[]>([])
 const dialogVisible = ref(false)
 const currentCustomer = ref<any>(null)
 const customerInquiries = ref<any[]>([])
+const router = useRouter()
+const route = useRoute()
 
 const searchForm = ref({ username: '', email: '', status: undefined as number | undefined })
 const pagination = ref({ current: 1, size: 10, total: 0 })
@@ -175,7 +183,27 @@ async function showDetail(row: any) {
   }
 }
 
-onMounted(() => loadData())
+async function openCustomerDetailById(userId: number) {
+  const user = await fetchGetUserDetail(userId)
+  await showDetail(user)
+}
+
+function openInquiryDetail(inquiryId: number) {
+  dialogVisible.value = false
+  router.push(`/inquiry/list?inquiryId=${inquiryId}`)
+}
+
+onMounted(async () => {
+  await loadData()
+
+  const userIdParam = route.query.userId
+  if (!userIdParam) return
+
+  const userId = Number(userIdParam)
+  if (!Number.isFinite(userId)) return
+
+  await openCustomerDetailById(userId)
+})
 </script>
 
 <style scoped lang="scss">

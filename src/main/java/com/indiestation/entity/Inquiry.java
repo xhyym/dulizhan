@@ -52,6 +52,10 @@ public class Inquiry {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
+    /** 商品总数量（非数据库字段） */
+    @TableField(exist = false)
+    private Integer totalQuantity;
+
     /** 询盘明细 (非数据库字段) */
     @TableField(exist = false)
     private List<InquiryItem> items;

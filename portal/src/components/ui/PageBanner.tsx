@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
+import { parseBannerImages } from "@/lib/site-config";
 
 interface Breadcrumb {
   label: string;
@@ -27,7 +28,7 @@ export default async function PageBanner({
 
   let bannerImage: string;
   try {
-    const images = JSON.parse(siteConfig.banner_images) as string[];
+    const images = parseBannerImages(siteConfig.banner_images);
     if (!images.length) throw new Error("空数组");
     bannerImage = images.length > 1 ? images[1] : images[0];
   } catch {

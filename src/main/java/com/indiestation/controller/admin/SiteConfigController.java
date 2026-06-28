@@ -1,8 +1,10 @@
 package com.indiestation.controller.admin;
 
 import com.indiestation.common.Result;
+import com.indiestation.entity.dto.TestEmailDTO;
 import com.indiestation.service.EmailService;
 import com.indiestation.service.SiteConfigService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,12 +45,8 @@ public class SiteConfigController {
      * 发送测试邮件
      */
     @PostMapping("/test-email")
-    public Result<Void> sendTestEmail(@RequestBody Map<String, String> params) {
-        String email = params.get("email");
-        if (email == null || email.isEmpty()) {
-            return Result.error("请输入邮箱地址");
-        }
-        emailService.sendTestEmail(email);
-        return Result.success();
+    public Result<String> sendTestEmail(@Valid @RequestBody TestEmailDTO dto) {
+        emailService.sendTestEmail(dto.getEmail());
+        return Result.success("测试邮件发送成功", "测试邮件已发送，请检查收件箱或垃圾邮件箱");
     }
 }

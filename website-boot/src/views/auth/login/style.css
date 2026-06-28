@@ -1,18 +1,31 @@
 @reference '@styles/core/tailwind.css';
 
+.login-page {
+  @apply w-full h-screen bg-white;
+}
+
+.login-stage {
+  @apply relative h-full w-full;
+}
+
 /* 授权页右侧区域 */
 .auth-right-wrap {
-  @apply absolute inset-0 w-[440px] h-[650px] py-[5px] m-auto overflow-hidden
-    max-sm:px-7 max-sm:w-full
+  @apply absolute inset-0 flex items-center justify-center px-6
     animate-[slideInRight_0.6s_cubic-bezier(0.25,0.46,0.45,0.94)_forwards]
     max-md:animate-none;
 
+  .login-card {
+    @apply w-full max-w-[460px] rounded-2xl bg-white px-8 py-10 shadow-[0_18px_50px_rgba(17,24,39,0.08)]
+      border border-solid border-[rgba(15,23,42,0.06)]
+      max-sm:max-w-full max-sm:px-7 max-sm:py-8;
+  }
+
   .form {
-    @apply h-full py-[40px];
+    @apply w-full;
   }
 
   .title {
-    @apply text-g-900 text-4xl font-semibold max-md:text-3xl max-sm:pt-10;
+    @apply text-g-900 text-4xl font-semibold max-md:text-3xl;
   }
 
   .sub-title {
@@ -22,6 +35,10 @@
   .custom-height {
     @apply !h-[40px];
   }
+}
+
+.login-form {
+  @apply mt-[25px];
 }
 
 /* 滑入动画 */

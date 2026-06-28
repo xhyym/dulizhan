@@ -21,12 +21,6 @@ spring:
           max-idle: 8
           min-idle: 0
 
-# 文件上传路径 (本地备用)
-file:
-  upload:
-    path: ./uploads/
-    url-prefix: http://localhost:8080/uploads/
-
 # Cloudflare R2 配置 (S3 兼容)
 r2:
   endpoint: https://c253d43d08e982116d109d99e3586e6b.r2.cloudflarestorage.com
