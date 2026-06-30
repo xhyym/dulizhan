@@ -4,26 +4,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        MAVEN_IMAGE: docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17
-        JRE_IMAGE: docker.m.daocloud.io/library/eclipse-temurin:17-jre
-        MAVEN_OPTS_ARGS: -Dmaven.repo.local=/root/.m2/repository
     container_name: dulizhan-backend
     restart: unless-stopped
     ports:
       - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
     environment:
-      # 数据库
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT:-3306}
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${DB_NAME:-indie_station}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      # Redis
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      # Cloudflare R2
       R2_ENDPOINT: ${R2_ENDPOINT}
       R2_ACCESS_KEY: ${R2_ACCESS_KEY}
       R2_SECRET_KEY: ${R2_SECRET_KEY}
@@ -31,14 +26,13 @@ services:
       R2_PUBLIC_URL: ${R2_PUBLIC_URL}
 
   # ---- 前端 Next.js 服务（可选） ----
-  # 如果用 1Panel OpenResty 反代到本机 PM2 启动的 Node 进程，可以注释掉这个服务
-  frontend:
-    build:
-      context: ./portal
-      dockerfile: Dockerfile
-    container_name: dulizhan-frontend
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: production
+  # frontend:
+  #   build:
+  #     context: ./portal
+  #     dockerfile: Dockerfile
+  #   container_name: dulizhan-frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     NODE_ENV: production
