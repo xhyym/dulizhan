@@ -26,3 +26,14 @@ uploads/
 # Node (website-boot)
 website-boot/node_modules/
 website-boot/dist/
+
+# 环境变量 - 包含敏感信息，禁止提交
+.env
+.env.local
+
+# 前端构建产物
+portal/.next/
+portal/out/
+
+# Node 依赖
+node_modules/

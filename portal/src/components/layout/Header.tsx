@@ -7,11 +7,18 @@ import { useCart } from "@/lib/cart";
 import SearchModal from "@/components/ui/SearchModal";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
-export default function Header() {
+interface HeaderProps {
+  siteName: string;
+}
+
+export default function Header({ siteName }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const { user, setShowLogin, logout } = useAuth();
   const { itemCount } = useCart();
+  const iconButtonClass = `inline-flex h-10 w-10 items-center justify-center transition-colors ${
+    scrolled ? "text-foreground" : "text-white"
+  }`;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,7 +40,7 @@ export default function Header() {
           scrolled ? "text-foreground" : "text-white"
         }`}
       >
-        INDIE STATION
+        {siteName}
       </Link>
 
       <nav className="hidden md:flex items-center gap-10">
@@ -75,9 +82,7 @@ export default function Header() {
         <LanguageSwitcher scrolled={scrolled} />
         <button
           onClick={() => setShowSearch(true)}
-          className={`transition-colors ${
-            scrolled ? "text-foreground" : "text-white"
-          }`}
+          className={iconButtonClass}
         >
           <svg
             width="20"
@@ -93,9 +98,7 @@ export default function Header() {
         </button>
         <Link
           href="/cart"
-          className={`relative transition-colors ${
-            scrolled ? "text-foreground" : "text-white"
-          }`}
+          className={`relative ${iconButtonClass}`}
         >
           <svg
             width="20"
@@ -116,11 +119,9 @@ export default function Header() {
           )}
         </Link>
         {user ? (
-          <div className="relative group">
+          <div className="relative flex items-center group">
             <button
-              className={`transition-colors ${
-                scrolled ? "text-foreground" : "text-white"
-              }`}
+              className={iconButtonClass}
             >
               <svg
                 width="20"
@@ -163,9 +164,7 @@ export default function Header() {
         ) : (
           <button
             onClick={() => setShowLogin(true)}
-            className={`transition-colors ${
-              scrolled ? "text-foreground" : "text-white"
-            }`}
+            className={iconButtonClass}
           >
             <svg
               width="20"

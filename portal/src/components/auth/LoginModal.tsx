@@ -29,12 +29,16 @@ const COUNTRY_CODES = [
 ];
 
 export default function LoginModal() {
-  const { showLogin, setShowLogin, login } = useAuth();
+  const { showLogin, setShowLogin, sendLoginCode, login } = useAuth();
   const [email, setEmail] = useState("");
   const [countryCode, setCountryCode] = useState("+86");
   const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [countdown, setCountdown] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -50,11 +54,49 @@ export default function LoginModal() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [dropdownOpen]);
 
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = window.setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [countdown]);
+
   if (!showLogin) return null;
+
+  const whatsapp = countryCode + phone;
+
+  const handleSendCode = async () => {
+    setError("");
+    setSuccessMessage("");
+
+    if (!email) {
+      setError("Email is required");
+      return;
+    }
+
+    if (!phone) {
+      setError("WhatsApp number is required");
+      return;
+    }
+
+    setSendingCode(true);
+    try {
+      const message = await sendLoginCode(email, whatsapp);
+      setSuccessMessage(message);
+      setCountdown(60);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to send code";
+      setError(message);
+    } finally {
+      setSendingCode(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
 
     if (!email) {
       setError("Email is required");
@@ -64,12 +106,17 @@ export default function LoginModal() {
       setError("WhatsApp number is required");
       return;
     }
+    if (!code) {
+      setError("Verification code is required");
+      return;
+    }
 
     setLoading(true);
     try {
-      await login(email, countryCode + phone);
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+      await login(email, whatsapp, code);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Login failed";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -109,6 +156,11 @@ export default function LoginModal() {
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm">
               {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-50 text-green-700 text-sm">
+              {successMessage}
             </div>
           )}
 
@@ -179,16 +231,43 @@ export default function LoginModal() {
             </div>
           </div>
 
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Email Verification Code</label>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="Enter 6-digit code"
+                className="flex-1 px-4 py-3 text-sm border border-border focus:outline-none focus:border-foreground transition-colors"
+                maxLength={6}
+                required
+              />
+              <button
+                type="button"
+                onClick={handleSendCode}
+                disabled={sendingCode || countdown > 0}
+                className="min-w-[138px] px-4 py-3 text-[12px] font-medium tracking-[2px] uppercase border border-[#1a1a1a] text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-white transition-all duration-300 disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[#1a1a1a]"
+              >
+                {sendingCode
+                  ? "Sending..."
+                  : countdown > 0
+                    ? `${countdown}s`
+                    : "Send Code"}
+              </button>
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
             className="w-full py-4 text-[13px] font-medium tracking-[3px] uppercase bg-[#1a1a1a] text-white hover:bg-[#333] transition-all duration-300 disabled:opacity-50"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Logging in..." : "Login with Code"}
           </button>
 
           <p className="text-center text-sm text-muted mt-4">
-            No account? Auto-created on login.
+            Enter your email and WhatsApp to receive a login code. A new account will be created automatically on first login.
           </p>
         </form>
       </div>

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import AddToCartButton from "./AddToCartButton";
 import { buildProductDetailMetadata } from "@/lib/seo";
 import { findCategoryName } from "@/lib/site-config";
+import ProductGallery from "@/components/product/ProductGallery";
 
 export async function generateMetadata({
   params,
@@ -78,29 +79,12 @@ export default async function ProductDetailPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-[1200px] mx-auto">
           {/* Images */}
           <div>
-            <div className="aspect-[3/4] overflow-hidden bg-surface mb-4">
-              <img
-                src={product.mainImage}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            {product.images.length > 0 && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.images.map((img, index) => (
-                  <div
-                    key={index}
-                    className="aspect-square overflow-hidden bg-surface"
-                  >
-                    <img
-                      src={img}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <ProductGallery
+              productName={product.name}
+              mainImage={product.mainImage}
+              images={product.images}
+              detailImage={product.detailImage}
+            />
           </div>
 
           {/* Details */}
@@ -132,11 +116,13 @@ export default async function ProductDetailPage({
               Product Details
             </h2>
             <div className="max-w-[800px] mx-auto">
-              <img
-                src={product.detailImage}
-                alt={`${product.name} details`}
-                className="w-full h-auto"
-              />
+              <div className="overflow-hidden bg-surface">
+                <img
+                  src={product.detailImage}
+                  alt={`${product.name} details`}
+                  className="w-full h-auto"
+                />
+              </div>
             </div>
           </div>
         </section>

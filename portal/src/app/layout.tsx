@@ -9,6 +9,7 @@ import LoginModal from "@/components/auth/LoginModal";
 import TranslateProvider from "@/components/TranslateProvider";
 import { portalAPI } from "@/lib/api";
 import { buildRootMetadata } from "@/lib/seo";
+import { getSiteDisplayName } from "@/lib/site-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,17 +30,20 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildRootMetadata(siteConfig);
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
+  const siteName = siteConfig ? getSiteDisplayName(siteConfig) : "OSEN FURNITURE";
+
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <CartProvider>
-            <Header />
+            <Header siteName={siteName} />
             <main className="flex-1">{children}</main>
             <Footer />
             <LoginModal />

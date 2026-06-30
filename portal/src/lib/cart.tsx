@@ -38,6 +38,12 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null);
 
+interface ApiResponse<T> {
+  code: number;
+  msg: string;
+  data: T;
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,7 +72,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user, authFetch]);
 
   useEffect(() => {
-    refreshCart();
+    void Promise.resolve().then(refreshCart);
   }, [refreshCart]);
 
   const addItem = useCallback(
@@ -76,8 +82,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ productId, skuId, quantity }),
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to add item");
+        const err = (await res.json()) as ApiResponse<null>;
+        throw new Error(err.msg || "Failed to add item");
       }
       await refreshCart();
     },

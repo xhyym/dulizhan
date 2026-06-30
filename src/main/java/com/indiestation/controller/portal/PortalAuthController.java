@@ -3,6 +3,7 @@ package com.indiestation.controller.portal;
 import cn.dev33.satoken.stp.StpUtil;
 import com.indiestation.common.Result;
 import com.indiestation.entity.dto.PortalLoginDTO;
+import com.indiestation.entity.dto.PortalSendCodeDTO;
 import com.indiestation.entity.vo.PortalUserVO;
 import com.indiestation.service.PortalAuthService;
 import jakarta.validation.Valid;
@@ -25,11 +26,20 @@ public class PortalAuthController {
     private final PortalAuthService portalAuthService;
 
     /**
-     * WhatsApp + 邮箱登录（不存在则自动注册）
+     * 发送邮箱验证码
+     */
+    @PostMapping("/send-code")
+    public Result<Void> sendCode(@Valid @RequestBody PortalSendCodeDTO dto) {
+        portalAuthService.sendLoginCode(dto.getEmail(), dto.getWhatsapp());
+        return Result.success("验证码已发送，请注意查收邮箱", null);
+    }
+
+    /**
+     * 邮箱验证码登录（不存在则自动注册）
      */
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody PortalLoginDTO dto) {
-        PortalUserVO user = portalAuthService.login(dto.getEmail(), dto.getWhatsapp());
+        PortalUserVO user = portalAuthService.login(dto.getEmail(), dto.getWhatsapp(), dto.getCode());
 
         Map<String, Object> data = new HashMap<>();
         data.put("token", StpUtil.getTokenValue());

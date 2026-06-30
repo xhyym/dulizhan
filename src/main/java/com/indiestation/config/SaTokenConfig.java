@@ -25,6 +25,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         // 管理端 - 登录接口
                         "/api/admin/auth/login",
                         // 门户端 - 公开接口（无需登录）
+                        "/api/portal/auth/send-code",
                         "/api/portal/auth/login",
                         "/api/portal/categories",
                         "/api/portal/products/**",

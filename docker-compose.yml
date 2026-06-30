@@ -13,16 +13,32 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: indie_station
-      DB_USERNAME: root
-      DB_PASSWORD: 请改成你的数据库密码
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: 请改成你的Redis密码
-      R2_ENDPOINT: 请改成你的R2 Endpoint
-      R2_ACCESS_KEY: 请改成你的R2 Access Key
-      R2_SECRET_KEY: 请改成你的R2 Secret Key
-      R2_BUCKET: dulizhan
-      R2_PUBLIC_URL: 请改成你的R2 Public URL
+      # 数据库
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # Redis
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Cloudflare R2
+      R2_ENDPOINT: ${R2_ENDPOINT}
+      R2_ACCESS_KEY: ${R2_ACCESS_KEY}
+      R2_SECRET_KEY: ${R2_SECRET_KEY}
+      R2_BUCKET: ${R2_BUCKET:-dulizhan}
+      R2_PUBLIC_URL: ${R2_PUBLIC_URL}
+
+  # ---- 前端 Next.js 服务（可选） ----
+  # 如果用 1Panel OpenResty 反代到本机 PM2 启动的 Node 进程，可以注释掉这个服务
+  frontend:
+    build:
+      context: ./portal
+      dockerfile: Dockerfile
+    container_name: dulizhan-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
