@@ -1,31 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
-
-declare global {
-  interface Window {
-    translate: any;
-    translateInit: boolean;
-  }
-}
+import {
+  bootStoredTranslateLanguage,
+  resolveBrowserTranslateRuntimeEnabled,
+} from "@/lib/translate-runtime";
 
 export default function TranslateProvider() {
   useEffect(() => {
-    if (window.translateInit) return;
-    window.translateInit = true;
+    resolveBrowserTranslateRuntimeEnabled();
 
-    const script = document.createElement("script");
-    script.src = "https://cdn.staticfile.net/translate.js/4.0.0/translate.min.js";
-    script.onload = () => {
-      if (!window.translate) return;
-      window.translate.language.setLocal("english");
-      window.translate.setAutoDiscriminateLocalLanguage();
-      window.translate.selectLanguageTag.show = false;
-      window.translate.service.use("client.edge");
-      window.translate.listener.start();
-      window.translate.execute();
-    };
-    document.head.appendChild(script);
+    void bootStoredTranslateLanguage().catch((error) => {
+      console.warn("初始化页面翻译能力失败：", error);
+    });
   }, []);
 
   return null;

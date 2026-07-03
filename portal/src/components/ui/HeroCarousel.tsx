@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  SWIPE_DIRECTION_THRESHOLD,
+  resolveSwipeAction,
+  shouldTreatAsHorizontalDrag,
+} from "@/lib/hero-carousel-gesture";
 
 interface HeroCarouselProps {
   images: string[];
@@ -12,17 +17,109 @@ interface HeroCarouselProps {
 
 export default function HeroCarousel({ images, tagline, title, subtitle }: HeroCarouselProps) {
   const [current, setCurrent] = useState(0);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const isPointerActiveRef = useRef(false);
+  const isHorizontalDragRef = useRef(false);
+  const suppressClickRef = useRef(false);
+
+  function showPreviousImage() {
+    setCurrent((prev) => (prev - 1 + images.length) % images.length);
+  }
+
+  function showNextImage() {
+    setCurrent((prev) => (prev + 1) % images.length);
+  }
 
   useEffect(() => {
-    if (images.length <= 1) return;
+    if (images.length <= 1 || isInteracting) return;
     const timer = setInterval(() => {
       setCurrent((prev) => (prev + 1) % images.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [images.length]);
+  }, [images.length, isInteracting]);
+
+  function handlePointerDown(event: React.PointerEvent<HTMLElement>) {
+    if (images.length <= 1) return;
+
+    dragStartRef.current = { x: event.clientX, y: event.clientY };
+    isPointerActiveRef.current = true;
+    isHorizontalDragRef.current = false;
+    suppressClickRef.current = false;
+    setIsInteracting(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: React.PointerEvent<HTMLElement>) {
+    if (!isPointerActiveRef.current) return;
+
+    const deltaX = event.clientX - dragStartRef.current.x;
+    const deltaY = event.clientY - dragStartRef.current.y;
+
+    if (!isHorizontalDragRef.current) {
+      isHorizontalDragRef.current = shouldTreatAsHorizontalDrag({ deltaX, deltaY });
+    }
+
+    if (isHorizontalDragRef.current && Math.abs(deltaX) > SWIPE_DIRECTION_THRESHOLD) {
+      suppressClickRef.current = true;
+    }
+  }
+
+  function resetPointerState() {
+    isPointerActiveRef.current = false;
+    isHorizontalDragRef.current = false;
+    setIsInteracting(false);
+  }
+
+  function handlePointerUp(event: React.PointerEvent<HTMLElement>) {
+    if (!isPointerActiveRef.current) return;
+
+    const deltaX = event.clientX - dragStartRef.current.x;
+    const deltaY = event.clientY - dragStartRef.current.y;
+    const swipeAction = resolveSwipeAction({ deltaX, deltaY });
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    resetPointerState();
+
+    if (swipeAction === "previous") {
+      showPreviousImage();
+      return;
+    }
+
+    if (swipeAction === "next") {
+      showNextImage();
+    }
+  }
+
+  function handlePointerCancel(event: React.PointerEvent<HTMLElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    resetPointerState();
+  }
+
+  function handleClickCapture(event: React.MouseEvent<HTMLElement>) {
+    if (!suppressClickRef.current) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    suppressClickRef.current = false;
+  }
 
   return (
-    <section className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
+    <section
+      className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden select-none cursor-grab active:cursor-grabbing"
+      style={{ touchAction: "pan-y" }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onClickCapture={handleClickCapture}
+    >
       {/* 图片层 */}
       {images.map((img, i) => (
         <div

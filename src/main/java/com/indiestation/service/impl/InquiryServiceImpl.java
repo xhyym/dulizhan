@@ -81,6 +81,19 @@ public class InquiryServiceImpl extends ServiceImpl<InquiryMapper, Inquiry> impl
     }
 
     @Override
+    public IPage<Inquiry> getPortalInquiryPage(Long userId, int current, int size, String inquiryNo) {
+        LambdaQueryWrapper<Inquiry> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Inquiry::getUserId, userId);
+
+        if (StringUtils.hasText(inquiryNo)) {
+            wrapper.like(Inquiry::getInquiryNo, inquiryNo.trim());
+        }
+
+        wrapper.orderByDesc(Inquiry::getCreateTime);
+        return page(new Page<>(current, size), wrapper);
+    }
+
+    @Override
     public void updateStatus(Long id, Integer status, String adminRemark) {
         Inquiry inquiry = getById(id);
         if (inquiry == null) {
@@ -115,6 +128,23 @@ public class InquiryServiceImpl extends ServiceImpl<InquiryMapper, Inquiry> impl
         if (!isValid) {
             throw new BusinessException("当前询盘状态不允许执行该操作");
         }
+    }
+
+    @Override
+    public void cancelInquiryByUser(Long inquiryId, Long userId) {
+        Inquiry inquiry = getById(inquiryId);
+        if (inquiry == null || userId == null || !userId.equals(inquiry.getUserId())) {
+            throw new BusinessException("Inquiry not found.");
+        }
+        if (inquiry.getStatus() == null) {
+            throw new BusinessException("Inquiry status is invalid.");
+        }
+        if (!Integer.valueOf(0).equals(inquiry.getStatus())) {
+            throw new BusinessException("Only pending inquiries can be cancelled.");
+        }
+
+        inquiry.setStatus(3);
+        updateById(inquiry);
     }
 
     /**

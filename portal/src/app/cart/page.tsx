@@ -6,14 +6,28 @@ import { useCart } from "@/lib/cart";
 import { useAuth, useAuthFetch } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import ClientBanner from "@/components/ui/ClientBanner";
+import MinimalDatePicker from "@/components/ui/MinimalDatePicker";
+
+function getTodayDateString(): string {
+  const currentDate = new Date();
+  const localDate = new Date(
+    currentDate.getTime() - currentDate.getTimezoneOffset() * 60 * 1000
+  );
+  return localDate.toISOString().slice(0, 10);
+}
 
 export default function CartPage() {
-  const { items, updateItem, removeItem, clearCart, loading } = useCart();
+  const { items, updateItem, removeItem, loading } = useCart();
   const { user, setShowLogin } = useAuth();
   const authFetch = useAuthFetch();
   const router = useRouter();
+  const todayDate = getTodayDateString();
   const [note, setNote] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showWhatsappReminder, setShowWhatsappReminder] = useState(false);
+  const [deliveryDateError, setDeliveryDateError] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
   const subtotal = items.reduce(
     (sum, item) =>
@@ -22,8 +36,26 @@ export default function CartPage() {
   );
 
   const handleSubmitInquiry = async () => {
+    setDeliveryDateError("");
+    setSubmitError("");
+
     if (!user) {
       setShowLogin(true);
+      return;
+    }
+
+    if (!user.whatsapp?.trim()) {
+      setShowWhatsappReminder(true);
+      return;
+    }
+
+    if (!deliveryDate) {
+      setDeliveryDateError("Please select a delivery date.");
+      return;
+    }
+
+    if (deliveryDate < todayDate) {
+      setDeliveryDateError("Delivery date cannot be earlier than today.");
       return;
     }
 
@@ -31,18 +63,20 @@ export default function CartPage() {
     try {
       const res = await authFetch("/api/portal/inquiries", {
         method: "POST",
-        body: JSON.stringify({ remark: note }),
+        body: JSON.stringify({ remark: note, deliveryDate }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "Failed to submit inquiry");
+        throw new Error(err.msg || err.message || "Failed to submit inquiry");
       }
 
       const data = await res.json();
       router.push(`/inquiry/success?id=${data.data}`);
-    } catch (err: any) {
-      alert(err.message || "Failed to submit inquiry");
+    } catch (error: unknown) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to submit inquiry"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -50,6 +84,58 @@ export default function CartPage() {
 
   return (
     <>
+      {showWhatsappReminder ? (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/45"
+            onClick={() => setShowWhatsappReminder(false)}
+          />
+          <div className="relative w-full max-w-md bg-white p-8 shadow-xl">
+            <button
+              type="button"
+              onClick={() => setShowWhatsappReminder(false)}
+              className="absolute right-4 top-4 text-muted transition-colors hover:text-foreground"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="mb-3 text-lg font-medium tracking-wider uppercase text-foreground">
+              Update WhatsApp
+            </h3>
+            <p className="text-sm leading-6 text-muted">
+              Please add your WhatsApp number in My Account before submitting an inquiry, so we can contact you about your request.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowWhatsappReminder(false)}
+                className="flex-1 border border-border px-4 py-3 text-[12px] font-medium uppercase tracking-[2px] text-foreground transition-colors hover:border-foreground"
+              >
+                Not Now
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowWhatsappReminder(false);
+                  router.push("/account");
+                }}
+                className="flex-1 bg-[#1a1a1a] px-4 py-3 text-[12px] font-medium uppercase tracking-[2px] text-white transition-colors hover:bg-[#333]"
+              >
+                Go to Account
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <ClientBanner
         title="Your Cart"
         breadcrumbs={[
@@ -163,16 +249,39 @@ export default function CartPage() {
                     <span className="text-sm font-medium">${subtotal}</span>
                   </div>
                   <div className="mb-6">
+                    <MinimalDatePicker
+                      label="Delivery Date"
+                      value={deliveryDate}
+                      minDate={todayDate}
+                      onChange={(nextDate) => {
+                        setDeliveryDate(nextDate);
+                        setDeliveryDateError("");
+                        setSubmitError("");
+                      }}
+                    />
+                    {deliveryDateError ? (
+                      <p className="mt-2 text-sm text-red-600">{deliveryDateError}</p>
+                    ) : null}
+                  </div>
+                  <div className="mb-6">
                     <label className="text-sm text-muted block mb-2">
                       Note (optional)
                     </label>
                     <textarea
                       value={note}
-                      onChange={(e) => setNote(e.target.value)}
+                      onChange={(e) => {
+                        setNote(e.target.value);
+                        setSubmitError("");
+                      }}
                       placeholder="Any special requirements..."
                       className="w-full p-3 text-sm border border-border resize-none h-24 focus:outline-none focus:border-foreground transition-colors"
                     />
                   </div>
+                  {submitError ? (
+                    <div className="mb-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                      {submitError}
+                    </div>
+                  ) : null}
                   <button
                     onClick={handleSubmitInquiry}
                     disabled={submitting}

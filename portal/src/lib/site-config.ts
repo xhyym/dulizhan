@@ -71,6 +71,23 @@ export function parseBannerImages(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+export function resolvePageBannerImage(
+  siteConfig: Record<string, string>,
+  imageKey?: string
+): string {
+  const configuredImage = imageKey ? siteConfig[imageKey]?.trim() : "";
+  if (configuredImage) {
+    return configuredImage;
+  }
+
+  const images = parseBannerImages(siteConfig.banner_images);
+  if (!images.length) {
+    return "";
+  }
+
+  return images.length > 1 ? images[1] : images[0];
+}
+
 export function parseSeoConfig(value: string | undefined): SeoConfig {
   const parsed = parseConfigJson<Partial<SeoConfig>>(value, {});
 

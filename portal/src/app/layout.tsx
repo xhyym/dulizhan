@@ -37,13 +37,14 @@ export default async function RootLayout({
 }>) {
   const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
   const siteName = siteConfig ? getSiteDisplayName(siteConfig) : "OSEN FURNITURE";
+  const siteLogo = siteConfig?.site_logo?.trim() || "";
 
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <CartProvider>
-            <Header siteName={siteName} />
+            <Header siteName={siteName} siteLogo={siteLogo} />
             <main className="flex-1">{children}</main>
             <Footer />
             <LoginModal />

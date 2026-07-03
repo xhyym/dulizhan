@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import { portalAPI, Product, Category } from "@/lib/api";
+import { portalAPI, Product } from "@/lib/api";
 import PageBanner from "@/components/ui/PageBanner";
+import ProductsCategoryFilter from "@/components/product/ProductsCategoryFilter";
+import ProductsSearchForm from "@/components/product/ProductsSearchForm";
 import { buildProductsPageMetadata } from "@/lib/seo";
 import { findCategoryName } from "@/lib/site-config";
 
@@ -64,6 +67,7 @@ export default async function ProductsPage({
     <>
       <PageBanner
         title="Our Collection"
+        imageKey="products_banner_image"
         breadcrumbs={[
           { label: "Home", href: "/" },
           { label: "Shop" },
@@ -80,41 +84,21 @@ export default async function ProductsPage({
             </h3>
             <div className="mb-8">
               <h4 className="text-sm font-medium mb-4">Category</h4>
-              <ul className="space-y-3">
-                <li>
-                  <Link
-                    href="/products"
-                    className={`text-sm font-light transition-colors ${
-                      !categoryId ? "text-foreground font-normal" : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    All Products
-                  </Link>
-                </li>
-                {categories.map((cat) => (
-                  <li key={cat.id}>
-                    <Link
-                      href={`/products?category=${cat.id}`}
-                      className={`text-sm font-light transition-colors ${
-                        categoryId === cat.id
-                          ? "text-foreground font-normal"
-                          : "text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {cat.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              <ProductsCategoryFilter
+                categories={categories}
+                activeCategoryId={categoryId}
+                keyword={keyword}
+              />
             </div>
           </aside>
 
           {/* Products Grid */}
           <div>
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted">
                 {productsData.total ?? 0} products
               </p>
+              <ProductsSearchForm categoryId={categoryId} keyword={keyword} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               {(productsData.records || []).map((product) => (
@@ -122,8 +106,31 @@ export default async function ProductsPage({
               ))}
             </div>
             {(!productsData.records || productsData.records.length === 0) && (
-              <div className="text-center py-20 text-muted">
-                No products found
+              <div className="flex min-h-[320px] flex-col items-center justify-center text-center text-muted">
+                <div className="mb-5 flex h-18 w-18 items-center justify-center rounded-2xl border border-border bg-white shadow-[0_14px_32px_rgba(15,23,42,0.05)]">
+                  <svg
+                    width="34"
+                    height="34"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5.75 8.75 12 5.5l6.25 3.25" />
+                    <path d="M6.5 9.25V15.5c0 .9.48 1.73 1.25 2.16L12 20l4.25-2.34a2.47 2.47 0 0 0 1.25-2.16V9.25" />
+                    <path d="M12 20v-6.5" />
+                    <path d="M6.5 9.25 12 12l5.5-2.75" />
+                    <path d="M9.25 14.25h5.5" />
+                  </svg>
+                </div>
+                <p className="mb-2 text-base font-normal text-foreground">
+                  No products found
+                </p>
+                <p className="text-sm">
+                  Try another keyword or choose a different category.
+                </p>
               </div>
             )}
           </div>
@@ -137,9 +144,11 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <Link href={`/products/${product.id}`} className="group cursor-pointer">
       <div className="relative aspect-[3/4] overflow-hidden bg-surface mb-4">
-        <img
+        <Image
           src={product.mainImage}
           alt={product.name}
+          fill
+          unoptimized
           className="w-full h-full object-cover transition-transform duration-600 group-hover:scale-105"
         />
       </div>

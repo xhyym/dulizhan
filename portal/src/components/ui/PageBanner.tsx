@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
-import { parseBannerImages } from "@/lib/site-config";
+import { resolvePageBannerImage } from "@/lib/site-config";
 
 interface Breadcrumb {
   label: string;
@@ -10,31 +10,31 @@ interface Breadcrumb {
 export default async function PageBanner({
   title,
   breadcrumbs,
+  imageKey,
 }: {
   title: string;
   breadcrumbs?: Breadcrumb[];
+  imageKey?: string;
 }) {
   const siteConfig = await portalAPI
     .getSiteConfig()
     .catch(() => null);
 
-  if (!siteConfig?.banner_images) {
+  if (!siteConfig) {
     return (
       <section className="relative h-[200px] md:h-[250px] flex items-center justify-center bg-red-50">
-        <p className="text-red-500 text-sm">站点配置缺失: banner_images，请在后台添加轮播图</p>
+        <p className="text-red-500 text-sm">站点配置加载失败，请检查后台设置</p>
       </section>
     );
   }
 
-  let bannerImage: string;
-  try {
-    const images = parseBannerImages(siteConfig.banner_images);
-    if (!images.length) throw new Error("空数组");
-    bannerImage = images.length > 1 ? images[1] : images[0];
-  } catch {
+  const bannerImage = resolvePageBannerImage(siteConfig, imageKey);
+  if (!bannerImage) {
     return (
       <section className="relative h-[200px] md:h-[250px] flex items-center justify-center bg-red-50">
-        <p className="text-red-500 text-sm">站点配置错误: banner_images 格式异常或为空</p>
+        <p className="text-red-500 text-sm">
+          站点配置缺失: {imageKey || "banner_images"}，请在后台补充页面背景图
+        </p>
       </section>
     );
   }

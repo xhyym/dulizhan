@@ -4,11 +4,11 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.indiestation.entity.User;
+import com.indiestation.entity.vo.PortalUserVO;
 import com.indiestation.exception.BusinessException;
 import com.indiestation.mapper.UserMapper;
 import com.indiestation.service.EmailService;
 import com.indiestation.service.PortalAuthService;
-import com.indiestation.entity.vo.PortalUserVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -39,9 +39,8 @@ public class PortalAuthServiceImpl implements PortalAuthService {
     private final StringRedisTemplate stringRedisTemplate;
 
     @Override
-    public void sendLoginCode(String email, String whatsapp) {
+    public void sendLoginCode(String email) {
         String normalizedEmail = normalizeEmail(email);
-        String normalizedWhatsapp = normalizeWhatsapp(whatsapp);
 
         String cooldownKey = LOGIN_CODE_COOLDOWN_KEY_PREFIX + normalizedEmail;
         Boolean canSend = stringRedisTemplate.opsForValue().setIfAbsent(
@@ -52,7 +51,7 @@ public class PortalAuthServiceImpl implements PortalAuthService {
         );
 
         if (Boolean.FALSE.equals(canSend)) {
-            throw new BusinessException("验证码发送过于频繁，请稍后再试");
+            throw new BusinessException("Verification code requests are too frequent. Please try again in a minute.");
         }
 
         String verificationCode = RandomUtil.randomNumbers(6);
@@ -60,32 +59,35 @@ public class PortalAuthServiceImpl implements PortalAuthService {
         try {
             stringRedisTemplate.opsForValue().set(
                     codeKey,
-                    buildCodeCacheValue(verificationCode, normalizedWhatsapp),
+                    verificationCode,
                     LOGIN_CODE_EXPIRE_MINUTES,
                     TimeUnit.MINUTES
             );
 
             emailService.sendHtmlEmail(
                     normalizedEmail,
-                    "【OSEN FURNITURE】邮箱验证码",
+                    "OSEN FURNITURE | Your Verification Code",
                     buildLoginCodeEmailContent(verificationCode)
             );
+        } catch (BusinessException e) {
+            stringRedisTemplate.delete(cooldownKey);
+            stringRedisTemplate.delete(codeKey);
+            throw new BusinessException("Failed to send the verification email. Please try again later.");
         } catch (Exception e) {
             stringRedisTemplate.delete(cooldownKey);
             stringRedisTemplate.delete(codeKey);
-            throw e;
+            throw new BusinessException("Failed to send the verification email. Please try again later.");
         }
 
         log.info("门户邮箱验证码发送成功，邮箱：{}", normalizedEmail);
     }
 
     @Override
-    public PortalUserVO login(String email, String whatsapp, String code) {
+    public PortalUserVO login(String email, String code) {
         String normalizedEmail = normalizeEmail(email);
-        String normalizedWhatsapp = normalizeWhatsapp(whatsapp);
         String normalizedCode = normalizeCode(code);
 
-        validateLoginCode(normalizedEmail, normalizedWhatsapp, normalizedCode);
+        validateLoginCode(normalizedEmail, normalizedCode);
 
         // 按邮箱查找用户
         User user = userMapper.selectOne(
@@ -95,18 +97,16 @@ public class PortalAuthServiceImpl implements PortalAuthService {
             // 自动注册
             user = new User();
             user.setEmail(normalizedEmail);
-            user.setWhatsapp(normalizedWhatsapp);
             user.setUsername(buildUsernameFromEmail(normalizedEmail));
             user.setStatus(1);
             user.setLastLoginTime(LocalDateTime.now());
             userMapper.insert(user);
         } else {
-            // 更新登录时间和WhatsApp
+            // 更新登录时间
             if (user.getStatus() != null && user.getStatus() != 1) {
-                throw new BusinessException("当前账号已被禁用");
+                throw new BusinessException("This account has been disabled.");
             }
             user.setLastLoginTime(LocalDateTime.now());
-            user.setWhatsapp(normalizedWhatsapp);
             userMapper.updateById(user);
         }
 
@@ -125,6 +125,47 @@ public class PortalAuthServiceImpl implements PortalAuthService {
         return toUserVO(user);
     }
 
+    @Override
+    public PortalUserVO updateWhatsapp(Long userId, String whatsapp) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("User not found.");
+        }
+        if (user.getStatus() != null && user.getStatus() != 1) {
+            throw new BusinessException("This account has been disabled.");
+        }
+
+        user.setWhatsapp(normalizeWhatsapp(whatsapp));
+        userMapper.updateById(user);
+        return toUserVO(user);
+    }
+
+    @Override
+    public PortalUserVO updateUsername(Long userId, String username) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("User not found.");
+        }
+        if (user.getStatus() != null && user.getStatus() != 1) {
+            throw new BusinessException("This account has been disabled.");
+        }
+
+        String normalizedUsername = normalizeUsername(username);
+        User duplicatedUser = userMapper.selectOne(
+                new LambdaQueryWrapper<User>()
+                        .eq(User::getUsername, normalizedUsername)
+                        .ne(User::getId, userId)
+                        .last("LIMIT 1")
+        );
+        if (duplicatedUser != null) {
+            throw new BusinessException("This username is already in use.");
+        }
+
+        user.setUsername(normalizedUsername);
+        userMapper.updateById(user);
+        return toUserVO(user);
+    }
+
     private PortalUserVO toUserVO(User user) {
         PortalUserVO vo = new PortalUserVO();
         vo.setId(user.getId());
@@ -137,54 +178,53 @@ public class PortalAuthServiceImpl implements PortalAuthService {
 
     private String normalizeEmail(String email) {
         if (!StringUtils.hasText(email)) {
-            throw new BusinessException("邮箱不能为空");
+            throw new BusinessException("Email is required");
         }
         return email.trim().toLowerCase(Locale.ROOT);
     }
 
     private String normalizeWhatsapp(String whatsapp) {
         if (!StringUtils.hasText(whatsapp)) {
-            throw new BusinessException("WhatsApp号码不能为空");
+            throw new BusinessException("WhatsApp number is required");
         }
         String normalized = whatsapp.replaceAll("[^\\d+]", "");
         if (!StringUtils.hasText(normalized)) {
-            throw new BusinessException("WhatsApp号码格式不正确");
+            throw new BusinessException("Please enter a valid WhatsApp number");
         }
         return normalized;
     }
 
     private String normalizeCode(String code) {
         if (!StringUtils.hasText(code)) {
-            throw new BusinessException("验证码不能为空");
+            throw new BusinessException("Verification code is required");
         }
         return code.trim();
     }
 
-    private String buildCodeCacheValue(String verificationCode, String whatsapp) {
-        return verificationCode + "|" + whatsapp;
+    private String normalizeUsername(String username) {
+        if (!StringUtils.hasText(username)) {
+            throw new BusinessException("Username is required");
+        }
+
+        String normalized = username.trim();
+        if (normalized.length() > 30) {
+            throw new BusinessException("Username must be 30 characters or fewer");
+        }
+        return normalized;
     }
 
-    private void validateLoginCode(String email, String whatsapp, String code) {
+    private void validateLoginCode(String email, String code) {
         String cachedValue = stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY_PREFIX + email);
         if (!StringUtils.hasText(cachedValue)) {
-            throw new BusinessException("验证码已过期，请重新获取");
+            throw new BusinessException("The verification code has expired. Please request a new one.");
         }
 
-        String[] cachedParts = cachedValue.split("\\|", 2);
-        if (cachedParts.length != 2) {
-            stringRedisTemplate.delete(LOGIN_CODE_KEY_PREFIX + email);
-            throw new BusinessException("验证码状态异常，请重新获取");
-        }
+        String normalizedCachedCode = cachedValue.contains("|")
+                ? cachedValue.substring(0, cachedValue.indexOf("|"))
+                : cachedValue;
 
-        String cachedCode = cachedParts[0];
-        String cachedWhatsapp = cachedParts[1];
-
-        if (!cachedCode.equals(code)) {
-            throw new BusinessException("验证码错误");
-        }
-
-        if (!cachedWhatsapp.equals(whatsapp)) {
-            throw new BusinessException("当前 WhatsApp 信息与验证码申请时不一致");
+        if (!normalizedCachedCode.equals(code)) {
+            throw new BusinessException("The verification code is incorrect.");
         }
     }
 
@@ -223,10 +263,11 @@ public class PortalAuthServiceImpl implements PortalAuthService {
                             <div class="brand">OSEN FURNITURE</div>
                         </div>
                         <div class="content">
-                            <p>您好，您正在进行门户网站登录验证。</p>
-                            <p>本次邮箱验证码为：</p>
+                            <p>Hello,</p>
+                            <p>You requested a verification code to sign in to OSEN FURNITURE.</p>
+                            <p>Your verification code is:</p>
                             <div class="code-box">%s</div>
-                            <p class="tip">验证码 10 分钟内有效，请勿泄露给他人。如果这不是您的操作，请忽略此邮件。</p>
+                            <p class="tip">This code will expire in 10 minutes. Please do not share it with anyone. If you did not request this code, you can safely ignore this email.</p>
                         </div>
                     </div>
                 </body>

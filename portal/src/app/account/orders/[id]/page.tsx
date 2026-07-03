@@ -25,6 +25,7 @@ interface Inquiry {
   userWhatsapp: string;
   totalAmount: number;
   remark: string | null;
+  deliveryDate: string | null;
   status: number;
   adminRemark: string | null;
   createTime: string;
@@ -38,12 +39,26 @@ const STATUS_MAP: Record<number, { label: string; color: string }> = {
   3: { label: "Cancelled", color: "text-red-600" },
 };
 
+function formatDateValue(dateValue?: string | null): string {
+  if (!dateValue) {
+    return "-";
+  }
+
+  if (dateValue.includes("T")) {
+    return dateValue.slice(0, 10);
+  }
+
+  return dateValue;
+}
+
 export default function OrderDetailPage() {
   const { user } = useAuth();
   const authFetch = useAuthFetch();
   const params = useParams();
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [loadingData, setLoadingData] = useState(true);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancellingInquiry, setCancellingInquiry] = useState(false);
 
   useEffect(() => {
     if (!user || !params.id) return;
@@ -62,7 +77,33 @@ export default function OrderDetailPage() {
       }
     };
     fetchInquiry();
-  }, [user, params.id]);
+  }, [authFetch, user, params.id]);
+
+  const handleCancelInquiry = async () => {
+    if (!inquiry) {
+      return;
+    }
+
+    setCancellingInquiry(true);
+    try {
+      const res = await authFetch(`/api/portal/inquiries/${inquiry.id}/cancel`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok || data.code !== 200) {
+        throw new Error(data.msg || "Failed to cancel inquiry");
+      }
+
+      setInquiry((previousInquiry) =>
+        previousInquiry ? { ...previousInquiry, status: 3 } : previousInquiry
+      );
+      setShowCancelConfirm(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to cancel inquiry");
+    } finally {
+      setCancellingInquiry(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -88,6 +129,66 @@ export default function OrderDetailPage() {
 
   return (
     <>
+      {showCancelConfirm ? (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/45"
+            onClick={() => {
+              if (!cancellingInquiry) {
+                setShowCancelConfirm(false);
+              }
+            }}
+          />
+          <div className="relative w-full max-w-md bg-white p-8 shadow-xl">
+            <button
+              type="button"
+              onClick={() => {
+                if (!cancellingInquiry) {
+                  setShowCancelConfirm(false);
+                }
+              }}
+              className="absolute right-4 top-4 text-muted transition-colors hover:text-foreground disabled:opacity-50"
+              disabled={cancellingInquiry}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="mb-3 text-lg font-medium tracking-wider uppercase text-foreground">
+              Cancel Inquiry
+            </h3>
+            <p className="text-sm leading-6 text-muted">
+              Are you sure you want to cancel this inquiry? This action cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={cancellingInquiry}
+                className="flex-1 border border-border px-4 py-3 text-[12px] font-medium uppercase tracking-[2px] text-foreground transition-colors hover:border-foreground disabled:opacity-50"
+              >
+                Keep Inquiry
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCancelInquiry()}
+                disabled={cancellingInquiry}
+                className="flex-1 bg-[#1a1a1a] px-4 py-3 text-[12px] font-medium uppercase tracking-[2px] text-white transition-colors hover:bg-[#333] disabled:opacity-50"
+              >
+                {cancellingInquiry ? "Cancelling..." : "Confirm Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mb-8">
         <div className="flex flex-wrap items-center gap-6 mb-6">
           <div>
@@ -103,10 +204,25 @@ export default function OrderDetailPage() {
           <div>
             <p className="text-sm text-muted">Date</p>
             <p className="font-medium">
-              {new Date(inquiry.createTime).toLocaleDateString()}
+              {formatDateValue(inquiry.createTime)}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted">Delivery Date</p>
+            <p className="font-medium">
+              {formatDateValue(inquiry.deliveryDate)}
             </p>
           </div>
         </div>
+        {inquiry.status === 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowCancelConfirm(true)}
+            className="inline-flex items-center border border-red-200 px-4 py-2 text-[12px] font-medium uppercase tracking-[2px] text-red-600 transition-colors hover:border-red-300 hover:bg-red-50"
+          >
+            Cancel Inquiry
+          </button>
+        ) : null}
       </div>
 
       {/* Items */}

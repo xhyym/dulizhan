@@ -21,8 +21,10 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  sendLoginCode: (email: string, whatsapp: string) => Promise<string>;
-  login: (email: string, whatsapp: string, code: string) => Promise<void>;
+  sendLoginCode: (email: string) => Promise<string>;
+  login: (email: string, code: string) => Promise<void>;
+  updateUsername: (username: string) => Promise<void>;
+  updateWhatsapp: (whatsapp: string) => Promise<void>;
   logout: () => Promise<void>;
   showLogin: boolean;
   setShowLogin: (show: boolean) => void;
@@ -94,11 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchUserInfo, token]);
 
-  const sendLoginCode = useCallback(async (email: string, whatsapp: string) => {
+  const sendLoginCode = useCallback(async (email: string) => {
     const res = await fetch(`${API_BASE}/api/portal/auth/send-code`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, whatsapp }),
+      body: JSON.stringify({ email }),
     });
 
     const data = (await res.json()) as ApiResponse<null>;
@@ -109,11 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.msg || "Verification code sent";
   }, []);
 
-  const login = useCallback(async (email: string, whatsapp: string, code: string) => {
+  const login = useCallback(async (email: string, code: string) => {
     const res = await fetch(`${API_BASE}/api/portal/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, whatsapp, code }),
+      body: JSON.stringify({ email, code }),
     });
 
     const data = (await res.json()) as ApiResponse<{ token: string; user: User }>;
@@ -128,6 +130,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(newUser);
     setShowLogin(false);
   }, []);
+
+  const updateWhatsapp = useCallback(
+    async (whatsapp: string) => {
+      const res = await fetch(`${API_BASE}/api/portal/auth/me/whatsapp`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...buildAuthorizationHeaders(token || undefined),
+        },
+        body: JSON.stringify({ whatsapp }),
+      });
+
+      const data = (await res.json()) as ApiResponse<User>;
+      if (!res.ok || data.code !== 200) {
+        throw new Error(data.msg || "Failed to update WhatsApp");
+      }
+
+      setUser(data.data);
+    },
+    [token]
+  );
+
+  const updateUsername = useCallback(
+    async (username: string) => {
+      const res = await fetch(`${API_BASE}/api/portal/auth/me/username`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...buildAuthorizationHeaders(token || undefined),
+        },
+        body: JSON.stringify({ username }),
+      });
+
+      const data = (await res.json()) as ApiResponse<User>;
+      if (!res.ok || data.code !== 200) {
+        throw new Error(data.msg || "Failed to update username");
+      }
+
+      setUser(data.data);
+    },
+    [token]
+  );
 
   const logout = useCallback(async () => {
     if (token) {
@@ -149,6 +193,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         sendLoginCode,
         login,
+        updateUsername,
+        updateWhatsapp,
         logout,
         showLogin,
         setShowLogin,

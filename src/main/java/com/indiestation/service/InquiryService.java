@@ -36,6 +36,11 @@ public interface InquiryService extends IService<Inquiry> {
     List<Inquiry> getInquiriesByUserId(Long userId);
 
     /**
+     * 门户端分页查询当前用户询盘
+     */
+    IPage<Inquiry> getPortalInquiryPage(Long userId, int current, int size, String inquiryNo);
+
+    /**
      * 更新询盘状态
      */
     void updateStatus(Long id, Integer status, String adminRemark);
@@ -44,4 +49,9 @@ public interface InquiryService extends IService<Inquiry> {
      * 校验询盘状态流转是否合法
      */
     void validateStatusTransition(Integer currentStatus, Integer targetStatus);
+
+    /**
+     * 门户用户取消自己的询盘
+     */
+    void cancelInquiryByUser(Long inquiryId, Long userId);
 }

@@ -1,6 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import {
+  changeTranslateLanguage,
+  normalizeTranslateLanguage,
+  readStoredTranslateLanguage,
+} from "@/lib/translate-runtime";
 
 const LANGUAGES = [
   { code: "english", label: "English", flag: "🇬🇧" },
@@ -28,7 +33,7 @@ export default function LanguageSwitcher({
   scrolled: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState("english");
+  const [current, setCurrent] = useState(() => readStoredTranslateLanguage());
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,11 +47,14 @@ export default function LanguageSwitcher({
   }, []);
 
   const handleChange = (code: string) => {
-    setCurrent(code);
+    const normalizedLanguage = normalizeTranslateLanguage(code);
+
+    setCurrent(normalizedLanguage);
     setOpen(false);
-    if (window.translate) {
-      window.translate.changeLanguage(code);
-    }
+
+    void changeTranslateLanguage(normalizedLanguage).catch((error) => {
+      console.warn("切换页面翻译语言失败：", error);
+    });
   };
 
   return (

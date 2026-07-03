@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
 
@@ -15,6 +16,7 @@ export default async function Footer() {
   }
 
   const siteTitle = siteConfig.site_title;
+  const siteLogo = siteConfig.site_logo?.trim() || "";
   if (!siteTitle) {
     return (
       <footer className="bg-[#1a1a1a] text-white px-6 py-10">
@@ -77,9 +79,21 @@ export default async function Footer() {
       <div className="max-w-[1200px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-15 mb-15">
           <div>
-            <span className="text-lg font-semibold tracking-widest mb-4 block">
-              {siteTitle}
-            </span>
+            <div className="flex items-center gap-3 mb-4">
+              {siteLogo ? (
+                <Image
+                  src={siteLogo}
+                  alt={siteTitle}
+                  width={120}
+                  height={20}
+                  unoptimized
+                  className="h-5 w-auto max-w-[120px] object-contain shrink-0"
+                />
+              ) : null}
+              <span className="text-lg font-semibold tracking-widest block">
+                {siteTitle}
+              </span>
+            </div>
             <p className="text-sm font-light leading-relaxed text-white/60">
               Handcrafted furniture for modern living. Simple, functional, and
               beautiful.

@@ -1,6 +1,8 @@
 package com.indiestation.controller.portal;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.indiestation.common.PageResult;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.indiestation.common.Result;
 import com.indiestation.entity.Cart;
@@ -16,14 +18,18 @@ import com.indiestation.mapper.InquiryMapper;
 import com.indiestation.mapper.ProductMapper;
 import com.indiestation.mapper.ProductSkuMapper;
 import com.indiestation.mapper.UserMapper;
+import com.indiestation.service.InquiryService;
 import com.indiestation.service.InquiryNoGenerator;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +41,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/portal/inquiries")
 @RequiredArgsConstructor
+@Slf4j
 public class PortalInquiryController {
 
     private final InquiryMapper inquiryMapper;
@@ -44,6 +51,7 @@ public class PortalInquiryController {
     private final ProductSkuMapper productSkuMapper;
     private final UserMapper userMapper;
     private final InquiryNoGenerator inquiryNoGenerator;
+    private final InquiryService inquiryService;
 
     /**
      * 提交询盘（从购物车生成订单）
@@ -54,14 +62,18 @@ public class PortalInquiryController {
         Long userId = getCurrentUserId();
         User user = userMapper.selectById(userId);
         if (user == null) {
-            return Result.error("用户不存在");
+            return Result.error("User not found.");
+        }
+
+        if (!StringUtils.hasText(user.getWhatsapp())) {
+            return Result.error("Please update your WhatsApp number in My Account before submitting an inquiry.");
         }
 
         // 查询用户购物车
         List<Cart> cartItems = cartMapper.selectList(
                 new LambdaQueryWrapper<Cart>().eq(Cart::getUserId, userId));
         if (cartItems.isEmpty()) {
-            return Result.error("购物车为空");
+            return Result.error("Your cart is empty.");
         }
 
         List<InquiryItem> items = new ArrayList<>();
@@ -71,7 +83,7 @@ public class PortalInquiryController {
         for (Cart cart : cartItems) {
             Product product = productMapper.selectById(cart.getProductId());
             if (product == null || product.getStatus() != 1 || product.getDeleted() != 0) {
-                invalidProductMessages.add("商品已失效，无法提交询盘");
+                invalidProductMessages.add("One or more products are no longer available and cannot be submitted.");
                 continue;
             }
 
@@ -87,7 +99,7 @@ public class PortalInquiryController {
             if (cart.getSkuId() != null) {
                 ProductSku sku = productSkuMapper.selectById(cart.getSkuId());
                 if (sku == null || sku.getStatus() != 1 || !sku.getProductId().equals(product.getId())) {
-                    invalidProductMessages.add("商品「" + product.getName() + "」的规格已失效，请重新选择");
+                    invalidProductMessages.add("The selected specification for product \"" + product.getName() + "\" is no longer available. Please choose again.");
                     continue;
                 }
                 item.setSkuId(sku.getId());
@@ -105,10 +117,18 @@ public class PortalInquiryController {
         }
 
         if (items.isEmpty()) {
-            return Result.error("购物车中没有可提交的商品");
+            return Result.error("There are no valid products in your cart to submit.");
         }
 
         // 创建询盘订单
+        LocalDate deliveryDate;
+        try {
+            deliveryDate = LocalDate.parse(dto.getDeliveryDate().trim());
+        } catch (DateTimeParseException exception) {
+            log.warn("门户询盘提交配送时间格式错误，用户ID：{}，原始值：{}", userId, dto.getDeliveryDate());
+            return Result.error("Please select a valid delivery date.");
+        }
+
         Inquiry inquiry = new Inquiry();
         inquiry.setInquiryNo(inquiryNoGenerator.generateInquiryNo());
         inquiry.setUserId(userId);
@@ -117,6 +137,7 @@ public class PortalInquiryController {
         inquiry.setUserWhatsapp(user.getWhatsapp());
         inquiry.setTotalAmount(totalAmount);
         inquiry.setRemark(StringUtils.hasText(dto.getRemark()) ? dto.getRemark().trim() : null);
+        inquiry.setDeliveryDate(deliveryDate);
         inquiry.setStatus(0);
         inquiryMapper.insert(inquiry);
 
@@ -134,16 +155,31 @@ public class PortalInquiryController {
     }
 
     /**
+     * 取消我的询盘
+     */
+    @PostMapping("/{id}/cancel")
+    public Result<Void> cancel(@PathVariable Long id) {
+        inquiryService.cancelInquiryByUser(id, getCurrentUserId());
+        return Result.success("Inquiry cancelled successfully.", null);
+    }
+
+    /**
      * 查询我的询盘列表
      */
     @GetMapping
-    public Result<List<Inquiry>> myInquiries() {
+    public Result<PageResult<Inquiry>> myInquiries(
+            @RequestParam(defaultValue = "1") int current,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String inquiryNo) {
         Long userId = getCurrentUserId();
-        List<Inquiry> list = inquiryMapper.selectList(
-                new LambdaQueryWrapper<Inquiry>()
-                        .eq(Inquiry::getUserId, userId)
-                        .orderByDesc(Inquiry::getCreateTime));
-        return Result.success(list);
+        IPage<Inquiry> page = inquiryService.getPortalInquiryPage(userId, current, size, inquiryNo);
+        PageResult<Inquiry> result = new PageResult<>(
+                page.getRecords(),
+                page.getCurrent(),
+                page.getSize(),
+                page.getTotal()
+        );
+        return Result.success(result);
     }
 
     /**
@@ -154,7 +190,7 @@ public class PortalInquiryController {
         Long userId = getCurrentUserId();
         Inquiry inquiry = inquiryMapper.selectById(id);
         if (inquiry == null || !inquiry.getUserId().equals(userId)) {
-            return Result.error("询盘不存在");
+            return Result.error("Inquiry not found.");
         }
         List<InquiryItem> items = inquiryItemMapper.selectList(
                 new LambdaQueryWrapper<InquiryItem>()

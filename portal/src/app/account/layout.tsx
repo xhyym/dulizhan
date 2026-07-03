@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import ClientBanner from "@/components/ui/ClientBanner";
+import { formatWhatsappNumber } from "@/lib/whatsapp";
 
 const NAV_ITEMS = [
   { label: "Account Info", href: "/account" },
@@ -81,7 +82,7 @@ export default function AccountLayout({
                 <h3 className="font-medium">{user.username}</h3>
                 <p className="text-sm text-muted">{user.email}</p>
                 {user.whatsapp && (
-                  <p className="text-sm text-muted">{user.whatsapp}</p>
+                  <p className="text-sm text-muted">{formatWhatsappNumber(user.whatsapp)}</p>
                 )}
               </div>
               <nav className="space-y-2">

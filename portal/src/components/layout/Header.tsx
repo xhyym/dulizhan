@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -9,9 +10,10 @@ import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
 interface HeaderProps {
   siteName: string;
+  siteLogo?: string;
 }
 
-export default function Header({ siteName }: HeaderProps) {
+export default function Header({ siteName, siteLogo = "" }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const { user, setShowLogin, logout } = useAuth();
@@ -36,11 +38,24 @@ export default function Header({ siteName }: HeaderProps) {
     >
       <Link
         href="/"
-        className={`text-xl font-semibold tracking-widest transition-colors ${
+        className={`flex items-center gap-3 transition-colors ${
           scrolled ? "text-foreground" : "text-white"
         }`}
       >
-        {siteName}
+        {siteLogo ? (
+          <Image
+            src={siteLogo}
+            alt={siteName}
+            width={120}
+            height={24}
+            unoptimized
+            priority
+            className="h-6 w-auto max-w-[120px] object-contain shrink-0"
+          />
+        ) : null}
+        <span className="text-xl font-semibold tracking-widest">
+          {siteName}
+        </span>
       </Link>
 
       <nav className="hidden md:flex items-center gap-10">

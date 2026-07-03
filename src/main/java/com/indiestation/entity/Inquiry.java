@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -39,6 +40,9 @@ public class Inquiry {
 
     /** 用户备注 */
     private String remark;
+
+    /** 配送时间 */
+    private LocalDate deliveryDate;
 
     /** 状态: 0-待处理, 1-已联系, 2-已完成, 3-已取消 */
     private Integer status;
