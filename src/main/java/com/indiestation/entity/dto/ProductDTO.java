@@ -33,6 +33,7 @@ public class ProductDTO {
     @DecimalMin(value = "0.00", message = "商品折后价不能小于0")
     private BigDecimal discountPrice;
 
+    @NotBlank(message = "SKU编码不能为空")
     private String skuCode;
 
     private String mainImage;

@@ -11,6 +11,7 @@ import com.indiestation.mapper.ProductMapper;
 import com.indiestation.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> implements CategoryService {
+
+    private static final Long ROOT_PARENT_ID = 0L;
+    private static final int MAX_CATEGORY_LEVEL = 2;
 
     private final ProductMapper productMapper;
 
@@ -53,7 +57,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     @Override
     public void createCategory(CategoryDTO dto) {
-        validateCategoryData(dto);
+        validateCategoryData(dto, null);
         validateDuplicateCategoryName(dto);
 
         Category category = new Category();
@@ -72,7 +76,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             throw new BusinessException("分类不存在");
         }
 
-        validateCategoryData(dto);
+        validateCategoryData(dto, category);
         validateDuplicateCategoryName(dto);
 
         category.setName(dto.getName());
@@ -110,9 +114,44 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     /**
      * 校验分类基础数据
      */
-    private void validateCategoryData(CategoryDTO dto) {
-        if (dto.getId() != null && Objects.equals(dto.getId(), dto.getParentId())) {
+    private void validateCategoryData(CategoryDTO dto, Category currentCategory) {
+        Long parentId = dto.getParentId() == null ? ROOT_PARENT_ID : dto.getParentId();
+        dto.setParentId(parentId);
+
+        if (dto.getId() != null && Objects.equals(dto.getId(), parentId)) {
             throw new BusinessException("父级分类不能选择自己");
+        }
+
+        Category parentCategory = null;
+        if (!Objects.equals(parentId, ROOT_PARENT_ID)) {
+            parentCategory = getById(parentId);
+            if (parentCategory == null) {
+                throw new BusinessException("父级分类不存在");
+            }
+
+            if (dto.getId() != null && isDescendantCategory(parentId, dto.getId())) {
+                throw new BusinessException("父级分类不能选择当前分类或其子分类");
+            }
+
+            int parentLevel = calculateCategoryLevel(parentCategory);
+            if (parentLevel >= MAX_CATEGORY_LEVEL) {
+                throw new BusinessException("商品分类最多只支持二级分类");
+            }
+        }
+
+        int targetLevel = parentCategory == null ? 1 : calculateCategoryLevel(parentCategory) + 1;
+        if (targetLevel > MAX_CATEGORY_LEVEL) {
+            throw new BusinessException("商品分类最多只支持二级分类");
+        }
+
+        if (targetLevel > 1 && StringUtils.hasText(dto.getImage())) {
+            throw new BusinessException("只有一级分类才能上传分类图片");
+        }
+
+        if (currentCategory != null
+                && hasChildren(currentCategory.getId())
+                && !Objects.equals(parentId, ROOT_PARENT_ID)) {
+            throw new BusinessException("当前分类下存在子分类，不能调整为二级分类");
         }
     }
 
@@ -132,5 +171,42 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         if (sameLevelNameCount > 0) {
             throw new BusinessException("同级分类名称已存在");
         }
+    }
+
+    /**
+     * 计算分类层级，顶级分类为 1 级。
+     */
+    private int calculateCategoryLevel(Category category) {
+        int level = 1;
+        Category current = category;
+        while (current != null && !Objects.equals(current.getParentId(), ROOT_PARENT_ID)) {
+            current = getById(current.getParentId());
+            level++;
+            if (level > MAX_CATEGORY_LEVEL + 1) {
+                break;
+            }
+        }
+        return level;
+    }
+
+    /**
+     * 判断目标父级是否为当前分类的子孙分类，避免形成循环树。
+     */
+    private boolean isDescendantCategory(Long targetParentId, Long currentCategoryId) {
+        Category current = getById(targetParentId);
+        while (current != null && !Objects.equals(current.getParentId(), ROOT_PARENT_ID)) {
+            if (Objects.equals(current.getId(), currentCategoryId)) {
+                return true;
+            }
+            current = getById(current.getParentId());
+        }
+        return current != null && Objects.equals(current.getId(), currentCategoryId);
+    }
+
+    /**
+     * 判断当前分类下是否仍存在子分类。
+     */
+    private boolean hasChildren(Long categoryId) {
+        return count(new LambdaQueryWrapper<Category>().eq(Category::getParentId, categoryId)) > 0;
     }
 }

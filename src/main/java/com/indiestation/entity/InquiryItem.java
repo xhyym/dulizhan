@@ -35,6 +35,10 @@ public class InquiryItem {
     /** SKU规格 (冗余) */
     private String skuSpec;
 
+    /** SKU编码（非数据库字段，详情展示时回填） */
+    @TableField(exist = false)
+    private String skuCode;
+
     /** 单价 */
     private BigDecimal price;
 

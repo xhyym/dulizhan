@@ -2,6 +2,7 @@ package com.indiestation.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.indiestation.entity.VisitLog;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -17,6 +18,19 @@ import java.util.Map;
  */
 @Mapper
 public interface VisitLogMapper extends BaseMapper<VisitLog> {
+
+    /**
+     * 批量写入访客日志
+     */
+    @Insert({
+            "<script>",
+            "INSERT INTO t_visit_log (ip, country, province, city, page_url, user_agent, device_type, visit_time) VALUES ",
+            "<foreach collection='list' item='item' separator=','>",
+            "(#{item.ip}, #{item.country}, #{item.province}, #{item.city}, #{item.pageUrl}, #{item.userAgent}, #{item.deviceType}, #{item.visitTime})",
+            "</foreach>",
+            "</script>"
+    })
+    int batchInsert(@Param("list") List<VisitLog> logs);
 
     /**
      * 按日期统计 PV/UV

@@ -33,11 +33,12 @@ function formatDateValue(dateValue?: string | null): string {
     return "-";
   }
 
-  if (dateValue.includes("T")) {
-    return dateValue.slice(0, 10);
+  const normalizedDateValue = dateValue.replace(/\//g, "-");
+  if (normalizedDateValue.includes("T")) {
+    return normalizedDateValue.slice(0, 10);
   }
 
-  return dateValue;
+  return normalizedDateValue;
 }
 
 export default function OrdersPage() {

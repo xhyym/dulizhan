@@ -51,7 +51,7 @@
               {{ currentCustomer.status === 1 ? '正常' : '禁用' }}
             </ElTag>
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="注册时间">{{ currentCustomer.createTime }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="注册时间">{{ formatDateText(currentCustomer.createTime, true) }}</ElDescriptionsItem>
         </ElDescriptions>
 
         <h4 style="margin: 20px 0 12px">询盘记录</h4>
@@ -67,7 +67,9 @@
               </ElTag>
             </template>
           </ElTableColumn>
-          <ElTableColumn prop="createTime" label="创建时间" />
+          <ElTableColumn prop="createTime" label="创建时间">
+            <template #default="{ row }">{{ formatDateText(row.createTime, true) }}</template>
+          </ElTableColumn>
           <ElTableColumn label="操作" width="100" align="center">
             <template #default="{ row }">
               <ElButton type="primary" link @click="openInquiryDetail(row.id)">查看详情</ElButton>
@@ -109,6 +111,19 @@ const statusConfig: Record<number, { type: TagType; text: string }> = {
   3: { type: 'info', text: '已取消' }
 }
 
+function formatDateText(dateValue?: string | null, includeTime = false) {
+  if (!dateValue) {
+    return '-'
+  }
+
+  const normalizedDateValue = dateValue.replace('T', ' ').replace(/\//g, '-')
+  if (includeTime) {
+    return normalizedDateValue
+  }
+
+  return normalizedDateValue.length >= 10 ? normalizedDateValue.slice(0, 10) : normalizedDateValue
+}
+
 // 列配置
 const { columns, columnChecks } = useTableColumns(() => [
   { prop: 'id', label: 'ID', width: 80 },
@@ -125,7 +140,12 @@ const { columns, columnChecks } = useTableColumns(() => [
         row.status === 1 ? '正常' : '禁用'
       )
   },
-  { prop: 'createTime', label: '注册时间', width: 180 },
+  {
+    prop: 'createTime',
+    label: '注册时间',
+    width: 180,
+    formatter: (row: any) => formatDateText(row.createTime, true)
+  },
   {
     prop: 'operation',
     label: '操作',

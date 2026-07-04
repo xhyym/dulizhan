@@ -48,6 +48,10 @@ interface ResolveTranslateRuntimeEnabledOptions {
   enableInDev?: boolean;
 }
 
+interface RuntimeEnableOptions {
+  force?: boolean;
+}
+
 function parseBooleanEnvFlag(flag?: string): boolean {
   return flag === "true" || flag === "1";
 }
@@ -161,10 +165,17 @@ export function persistTranslateLanguage(language?: string | null): string {
   return normalizedLanguage;
 }
 
-export function resolveBrowserTranslateRuntimeEnabled(): boolean {
+export function resolveBrowserTranslateRuntimeEnabled(
+  options: RuntimeEnableOptions = {}
+): boolean {
   const targetWindow = getBrowserWindow();
   if (!targetWindow) {
     return false;
+  }
+
+  if (options.force) {
+    targetWindow.translateRuntimeEnabled = true;
+    return true;
   }
 
   if (typeof targetWindow.translateRuntimeEnabled === "boolean") {
@@ -266,6 +277,8 @@ export async function changeTranslateLanguage(
     return normalizedLanguage;
   }
 
+  // 用户主动切换语言时，即使在本地开发环境也应允许按需拉起翻译插件。
+  resolveBrowserTranslateRuntimeEnabled({ force: true });
   const translateInstance = await ensureTranslateRuntime();
   if (!translateInstance) {
     return normalizedLanguage;

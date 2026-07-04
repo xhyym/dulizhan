@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import LoginModal from "@/components/auth/LoginModal";
+import VisitTracker from "@/components/analytics/VisitTracker";
 import TranslateProvider from "@/components/TranslateProvider";
 import { portalAPI } from "@/lib/api";
 import { buildRootMetadata } from "@/lib/seo";
@@ -45,6 +47,9 @@ export default async function RootLayout({
         <AuthProvider>
           <CartProvider>
             <Header siteName={siteName} siteLogo={siteLogo} />
+            <Suspense fallback={null}>
+              <VisitTracker />
+            </Suspense>
             <main className="flex-1">{children}</main>
             <Footer />
             <LoginModal />

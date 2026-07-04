@@ -105,7 +105,7 @@
             <ElFormItem label="折后价">
               <ElInputNumber v-model="formData.discountPrice" :min="0" :precision="2" style="width: 100%" />
             </ElFormItem>
-            <ElFormItem label="SKU编码">
+            <ElFormItem label="SKU编码" required>
               <ElInput v-model="formData.skuCode" placeholder="请输入SKU编码" />
             </ElFormItem>
             <ElFormItem label="状态">
@@ -149,7 +149,7 @@
               </ElIcon>
             </ElUpload>
           </div>
-          <div class="image-tip">支持多张图片上传，第一张将作为商品主图</div>
+          <div class="image-tip">支持多张图片上传，第一张将作为商品主图，图片比例需接近 3:4</div>
         </div>
 
         <!-- 第三栏：海报图与详情图 -->
@@ -183,7 +183,7 @@
                   <CircleClose />
                 </ElIcon>
               </div>
-              <div class="image-tip">建议尺寸 1920×500</div>
+              <div class="image-tip">建议尺寸 1920×500，图片比例需接近 1920:500</div>
             </div>
             <div class="special-image-item">
               <div class="image-label">详情长图</div>
@@ -212,7 +212,7 @@
                   <CircleClose />
                 </ElIcon>
               </div>
-              <div class="image-tip">商品详情页底部展示</div>
+              <div class="image-tip">商品详情页底部展示，建议使用 3:4 竖版图片</div>
             </div>
           </div>
         </div>
@@ -221,12 +221,19 @@
         <div class="dialog-column">
           <h4 class="column-title">SKU信息</h4>
           <div class="sku-area">
-            <ElButton size="small" type="primary" @click="addSku" plain>添加SKU</ElButton>
             <div class="sku-list" v-if="formData.skus.length">
               <div v-for="(sku, index) in formData.skus" :key="index" class="sku-item">
                 <div class="sku-header">
                   <span>SKU {{ index + 1 }}</span>
-                  <ElButton type="danger" link size="small" @click="formData.skus.splice(index, 1)">删除</ElButton>
+                  <ElButton
+                    v-if="formData.skus.length > 1"
+                    type="danger"
+                    link
+                    size="small"
+                    @click="formData.skus.splice(index, 1)"
+                  >
+                    删除
+                  </ElButton>
                 </div>
                 <ElForm :model="sku" label-width="60px" size="small">
                   <ElFormItem label="规格">
@@ -236,9 +243,10 @@
                   <ElFormItem label="价格">
                     <ElInputNumber v-model="sku.price" :min="0" :precision="2" style="width: 100%" />
                   </ElFormItem>
-                  <ElFormItem label="库存">
+                  <!-- 库存字段暂时隐藏，后续恢复时保留原有数据结构 -->
+                  <!-- <ElFormItem label="库存">
                     <ElInputNumber v-model="sku.stock" :min="0" style="width: 100%" />
-                  </ElFormItem>
+                  </ElFormItem> -->
                 </ElForm>
               </div>
             </div>
@@ -289,6 +297,18 @@ interface ProductFormData {
   sort: number
 }
 
+interface ImageSize {
+  width: number
+  height: number
+}
+
+interface ImageRatioRule {
+  fieldLabel: string
+  ratioLabel: string
+  minRatio: number
+  maxRatio: number
+}
+
 const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<Api.Product.ProductItem[]>([])
@@ -303,6 +323,38 @@ const searchForm = ref({
 })
 const pagination = ref({ current: 1, size: 10, total: 0 })
 
+const PRODUCT_MAIN_IMAGE_RULE: ImageRatioRule = {
+  fieldLabel: '商品主图/副图',
+  ratioLabel: '3:4',
+  minRatio: 0.72,
+  maxRatio: 0.78
+}
+
+const PRODUCT_POSTER_IMAGE_RULE: ImageRatioRule = {
+  fieldLabel: '海报图',
+  ratioLabel: '1920:500',
+  minRatio: 3.7,
+  maxRatio: 3.98
+}
+
+const PRODUCT_DETAIL_IMAGE_RULE: ImageRatioRule = {
+  fieldLabel: '详情图',
+  ratioLabel: '3:4',
+  minRatio: 0.72,
+  maxRatio: 0.78
+}
+
+function createDefaultSku(): Api.Product.SkuItem {
+  return {
+    skuCode: '',
+    specName: '',
+    specValue: '',
+    price: 0,
+    stock: 0,
+    status: 1
+  }
+}
+
 function createDefaultFormData(): ProductFormData {
   return {
     id: undefined,
@@ -316,7 +368,7 @@ function createDefaultFormData(): ProductFormData {
     posterImage: '',
     detailImage: '',
     images: [],
-    skus: [],
+    skus: [createDefaultSku()],
     status: 1,
     sort: 0
   }
@@ -479,7 +531,7 @@ async function openDialog(id?: number) {
         posterImage: data.posterImage || '',
         detailImage: data.detailImage || '',
         images: data.images || [],
-        skus: (data.skus || []).map(s => ({ ...s })),
+        skus: data.skus && data.skus.length ? data.skus.map(s => ({ ...s })) : [createDefaultSku()],
         status: data.status,
         sort: data.sort || 0
       }
@@ -501,6 +553,7 @@ function resetForm() {
 // 上传图片
 async function handleImageUpload(options: any) {
   try {
+    await validateImageRatio(options.file, PRODUCT_MAIN_IMAGE_RULE)
     const url = await uploadImage(options.file)
     if (!formData.value.mainImage) {
       formData.value.mainImage = url
@@ -516,6 +569,8 @@ async function handleImageUpload(options: any) {
 // 上传海报图/详情图
 async function handleSpecialImageUpload(options: any, field: 'posterImage' | 'detailImage') {
   try {
+    const ratioRule = field === 'posterImage' ? PRODUCT_POSTER_IMAGE_RULE : PRODUCT_DETAIL_IMAGE_RULE
+    await validateImageRatio(options.file, ratioRule)
     const url = await uploadImage(options.file)
     formData.value[field] = url
     ElMessage.success('图片上传成功')
@@ -537,16 +592,42 @@ function removeImage(index: number) {
   }
 }
 
-// 添加SKU
-function addSku() {
-  formData.value.skus.push({
-    skuCode: '',
-    specName: '',
-    specValue: '',
-    price: 0,
-    stock: 0,
-    status: 1
+/**
+ * 读取图片真实尺寸，用于上传前做比例校验。
+ */
+function readImageSize(file: File): Promise<ImageSize> {
+  return new Promise((resolve, reject) => {
+    const imageUrl = URL.createObjectURL(file)
+    const image = new Image()
+
+    image.onload = () => {
+      const imageSize = { width: image.width, height: image.height }
+      URL.revokeObjectURL(imageUrl)
+      resolve(imageSize)
+    }
+
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl)
+      reject(new Error('图片解析失败，请更换文件后重试'))
+    }
+
+    image.src = imageUrl
   })
+}
+
+/**
+ * 统一校验商品图片比例，防止不规整图片影响前台展示。
+ */
+async function validateImageRatio(file: File, rule: ImageRatioRule) {
+  const { width, height } = await readImageSize(file)
+  if (width <= 0 || height <= 0) {
+    throw new Error(`${rule.fieldLabel}尺寸无效，请重新选择图片`)
+  }
+
+  const ratio = width / height
+  if (ratio < rule.minRatio || ratio > rule.maxRatio) {
+    throw new Error(`${rule.fieldLabel}比例不符合要求，请上传接近 ${rule.ratioLabel} 的图片`)
+  }
 }
 
 // 提交表单
@@ -554,6 +635,10 @@ async function handleSubmit() {
   if (!formData.value.name.trim()) return ElMessage.warning('请输入商品名称')
   if (formData.value.categoryId === undefined) return ElMessage.warning('请选择商品分类')
   if (formData.value.price === undefined || formData.value.price === null) return ElMessage.warning('请输入商品价格')
+  if (!formData.value.skuCode.trim()) return ElMessage.warning('请输入SKU编码')
+  if (!formData.value.skus.length) {
+    formData.value.skus = [createDefaultSku()]
+  }
 
   submitting.value = true
   try {

@@ -266,6 +266,7 @@ declare namespace Api {
       productName: string
       productImage: string
       skuId?: number
+      skuCode?: string
       skuSpec?: string
       price: number
       quantity: number
@@ -283,6 +284,7 @@ declare namespace Api {
       remark: string
       status: number
       adminRemark: string
+      deliveryDate?: string
       createTime: string
       updateTime: string
       totalQuantity?: number

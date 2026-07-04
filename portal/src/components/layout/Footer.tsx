@@ -58,12 +58,12 @@ export default async function Footer() {
   try {
     socialLinks = JSON.parse(siteConfig.social_links);
   } catch {
-    return (
-      <footer className="bg-[#1a1a1a] text-white px-6 py-10">
-        <p className="text-red-400 text-sm text-center">站点配置错误: social_links JSON 格式异常</p>
-      </footer>
-    );
+    socialLinks = {};
   }
+
+  const activeSocialLinks = Object.entries(socialLinks).filter(([_key, url]) =>
+    Boolean(url?.trim())
+  );
 
   const socialLabels: Record<string, string> = {
     facebook: "Facebook",
@@ -150,12 +150,13 @@ export default async function Footer() {
               ))}
             </ul>
           </div>
+          {activeSocialLinks.length > 0 ? (
           <div>
             <h4 className="text-[13px] font-medium tracking-wider uppercase mb-6">
               Connect
             </h4>
             <ul className="space-y-3">
-              {Object.entries(socialLinks).map(([key, url]) => (
+              {activeSocialLinks.map(([key, url]) => (
                 <li key={key}>
                   <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm font-light text-white/60 hover:text-white transition-colors">
                     {socialLabels[key] || key}
@@ -164,18 +165,21 @@ export default async function Footer() {
               ))}
             </ul>
           </div>
+          ) : null}
         </div>
         <div className="border-t border-white/10 pt-10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[13px] font-light text-white/40">
             {footerData.copyright}
           </p>
+          {activeSocialLinks.length > 0 ? (
           <div className="flex gap-5">
-            {Object.entries(socialLinks).map(([key, url]) => (
+            {activeSocialLinks.map(([key, url]) => (
               <a key={key} href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-white/60 hover:text-white transition-colors">
                 {socialLabels[key] || key}
               </a>
             ))}
           </div>
+          ) : null}
         </div>
       </div>
     </footer>

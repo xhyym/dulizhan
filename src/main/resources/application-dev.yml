@@ -23,8 +23,8 @@ spring:
 
 # Cloudflare R2 配置 (S3 兼容)
 r2:
-  endpoint: https://c253d43d08e982116d109d99e3586e6b.r2.cloudflarestorage.com
-  access-key-id: c09dd36a4f17e644277bebdb12b499d9
-  secret-access-key: 04aaa3e89a46e0c3e631c12413df0d520ebff665a82d9e470270764cb392171e
-  bucket: dulizhan
-  public-url: https://pub-baff4f8d45054a8fb57ca8097da74315.r2.dev
+  endpoint: https://cf390a74405dfbb1cfb142150ba069e2.r2.cloudflarestorage.com
+  access-key-id: 26e7ff428424e28234ed2b952122baa0
+  secret-access-key: 7589d31697f6461be205249bcafc1aec84582b703791f2e017cb6c55259eab77
+  bucket: osengroup
+  public-url: https://pub-17c3d760aa8d450ab56c3748b44f6cd3.r2.dev

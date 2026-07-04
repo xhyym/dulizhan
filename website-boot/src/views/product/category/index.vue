@@ -46,7 +46,10 @@
         </ElFormItem>
         <ElFormItem label="分类图片">
           <div class="category-image-upload">
-            <div v-if="formData.image" class="image-preview">
+            <div v-if="!isTopLevelCategory" class="image-tip">
+              当前为二级分类，仅一级分类支持上传分类图片
+            </div>
+            <div v-else-if="formData.image" class="image-preview">
               <img :src="formData.image" alt="分类图片" />
               <ElIcon class="remove-btn" @click="formData.image = ''"><Close /></ElIcon>
             </div>
@@ -61,11 +64,15 @@
                 <span>上传图片</span>
               </div>
             </ElUpload>
+            <div class="upload-tip">仅一级分类支持上传分类图片</div>
           </div>
         </ElFormItem>
         <ElFormItem label="父级分类">
           <ElTreeSelect v-model="formData.parentId" :data="treeData" :props="{ label: 'name', value: 'id' }"
             placeholder="顶级分类" clearable check-strictly />
+        </ElFormItem>
+        <ElFormItem v-if="!isTopLevelCategory" label="层级说明">
+          <div class="level-tip">当前分类将作为二级分类创建，系统不允许继续向下创建三级分类。</div>
         </ElFormItem>
         <ElFormItem label="排序">
           <ElInputNumber v-model="formData.sort" :min="0" :max="999" />
@@ -86,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
 import { fetchGetCategoryList, fetchCreateCategory, fetchUpdateCategory, fetchDeleteCategory } from '@/api/product'
@@ -100,6 +107,7 @@ const submitting = ref(false)
 const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
 const tableData = ref<Api.Product.Category[]>([])
+const editingCategoryHasChildren = ref(false)
 
 // 搜索表单
 const searchForm = ref({ name: '', status: undefined as number | undefined })
@@ -139,8 +147,14 @@ const formData = ref<Api.Product.CategoryDTO>({
 })
 
 const treeData = computed(() => {
-  return [{ id: 0, name: '顶级分类', children: tableData.value }]
+  const topLevelCategories = tableData.value
+    .filter((item) => item.parentId === 0 && item.id !== formData.value.id)
+    .map((item) => ({ ...item, children: [] }))
+
+  return [{ id: 0, name: '顶级分类', children: topLevelCategories }]
 })
+
+const isTopLevelCategory = computed(() => Number(formData.value.parentId ?? 0) === 0)
 
 // 列配置
 const { columns, columnChecks } = useTableColumns(() => [
@@ -202,8 +216,17 @@ function resetSearch() {
 function showDialog(type: 'add' | 'edit', row?: any) {
   dialogType.value = type
   if (type === 'edit' && row) {
-    formData.value = { id: row.id, name: row.name, image: row.image || '', parentId: row.parentId, sort: row.sort, status: row.status }
+    editingCategoryHasChildren.value = Array.isArray(row.children) && row.children.length > 0
+    formData.value = {
+      id: row.id,
+      name: row.name,
+      image: row.parentId === 0 ? row.image || '' : '',
+      parentId: row.parentId,
+      sort: row.sort,
+      status: row.status
+    }
   } else {
+    editingCategoryHasChildren.value = false
     formData.value = { id: undefined, name: '', image: '', parentId: 0, sort: 0, status: 1 }
   }
   dialogVisible.value = true
@@ -212,6 +235,16 @@ function showDialog(type: 'add' | 'edit', row?: any) {
 async function handleSubmit() {
   if (!formData.value.name.trim()) {
     ElMessage.warning('请输入分类名称')
+    return
+  }
+
+  if (!isTopLevelCategory.value && formData.value.image) {
+    ElMessage.warning('二级分类不能上传分类图片')
+    return
+  }
+
+  if (!isTopLevelCategory.value && editingCategoryHasChildren.value) {
+    ElMessage.warning('当前分类下存在子分类，不能调整为二级分类')
     return
   }
 
@@ -231,6 +264,11 @@ async function handleSubmit() {
 }
 
 async function handleImageUpload(options: any) {
+  if (!isTopLevelCategory.value) {
+    ElMessage.warning('仅一级分类支持上传分类图片')
+    return
+  }
+
   try {
     const url = await uploadImage(options.file)
     formData.value.image = url
@@ -246,6 +284,19 @@ async function handleDelete(row: any) {
   ElMessage.success('删除成功')
   loadData()
 }
+
+watch(
+  () => formData.value.parentId,
+  (parentId, previousParentId) => {
+    const normalizedParentId = Number(parentId ?? 0)
+    if (normalizedParentId !== 0 && formData.value.image) {
+      formData.value.image = ''
+      if (dialogVisible.value && previousParentId !== undefined) {
+        ElMessage.warning('二级分类不支持分类图片，已自动清空当前图片')
+      }
+    }
+  }
+)
 
 onMounted(() => loadData())
 </script>
@@ -275,6 +326,25 @@ onMounted(() => loadData())
 }
 
 .category-image-upload {
+  .image-tip,
+  .upload-tip,
+  .level-tip {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--el-text-color-secondary);
+  }
+
+  .image-tip {
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: var(--el-fill-color-light);
+    border: 1px dashed var(--el-border-color);
+  }
+
+  .upload-tip {
+    margin-top: 8px;
+  }
+
   .image-preview {
     position: relative;
     width: 100px;
@@ -329,5 +399,9 @@ onMounted(() => loadData())
       font-size: 20px;
     }
   }
+}
+
+.level-tip {
+  color: var(--el-color-warning);
 }
 </style>

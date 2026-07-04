@@ -54,15 +54,24 @@
           <ElDescriptionsItem label="客户邮箱">{{ currentInquiry.userEmail || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="WhatsApp">{{ currentInquiry.userWhatsapp || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="总金额">¥{{ currentInquiry.totalAmount }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="创建时间">{{ currentInquiry.createTime }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="更新时间">{{ currentInquiry.updateTime }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="客户备注" :span="2">{{ currentInquiry.remark || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="配送时间">{{ formatDateText(currentInquiry.deliveryDate) }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="创建时间">{{ formatDateText(currentInquiry.createTime) }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="更新时间">{{ formatDateText(currentInquiry.updateTime, true) }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="客户备注" :span="2">
+            <div class="multiline-text">{{ currentInquiry.remark?.trim() || '-' }}</div>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="管理员备注" :span="2">
+            <div class="multiline-text">{{ currentInquiry.adminRemark?.trim() || '-' }}</div>
+          </ElDescriptionsItem>
         </ElDescriptions>
 
         <div class="detail-section">
           <div class="section-title">商品明细</div>
           <ElTable :data="currentInquiry.items || []" border size="small">
             <ElTableColumn prop="productName" label="商品名称" min-width="220" show-overflow-tooltip />
+            <ElTableColumn prop="skuCode" label="SKU编码" min-width="150" show-overflow-tooltip>
+              <template #default="{ row }">{{ row.skuCode || '-' }}</template>
+            </ElTableColumn>
             <ElTableColumn prop="skuSpec" label="规格" min-width="160" show-overflow-tooltip>
               <template #default="{ row }">{{ row.skuSpec || '-' }}</template>
             </ElTableColumn>
@@ -185,6 +194,19 @@ const statusConfig: Record<number, { type: TagType; text: string }> = {
   3: { type: 'info', text: '已取消' }
 }
 
+function formatDateText(dateValue?: string | null, includeTime = false) {
+  if (!dateValue) {
+    return '-'
+  }
+
+  const normalizedDateValue = dateValue.replace('T', ' ').replace(/\//g, '-')
+  if (includeTime) {
+    return normalizedDateValue
+  }
+
+  return normalizedDateValue.length >= 10 ? normalizedDateValue.slice(0, 10) : normalizedDateValue
+}
+
 // 列配置
 const { columns, columnChecks } = useTableColumns(() => [
   { prop: 'inquiryNo', label: '询盘编号', width: 180 },
@@ -238,7 +260,12 @@ const { columns, columnChecks } = useTableColumns(() => [
       return h(ElTag, { type: cfg?.type ?? 'info' }, () => cfg?.text || '未知')
     }
   },
-  { prop: 'createTime', label: '创建时间', width: 180 },
+  {
+    prop: 'createTime',
+    label: '创建时间',
+    width: 180,
+    formatter: (row: Api.Inquiry.Inquiry) => formatDateText(row.createTime, true)
+  },
   {
     prop: 'operation',
     label: '操作',
@@ -462,6 +489,11 @@ onMounted(() => loadData())
     font-size: 14px;
     font-weight: 600;
     color: #303133;
+  }
+
+  .multiline-text {
+    white-space: pre-wrap;
+    line-height: 1.6;
   }
 }
 </style>

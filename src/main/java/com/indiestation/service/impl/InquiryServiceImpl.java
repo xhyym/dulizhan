@@ -6,9 +6,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.indiestation.entity.Inquiry;
 import com.indiestation.entity.InquiryItem;
+import com.indiestation.entity.Product;
+import com.indiestation.entity.ProductSku;
 import com.indiestation.exception.BusinessException;
 import com.indiestation.mapper.InquiryItemMapper;
 import com.indiestation.mapper.InquiryMapper;
+import com.indiestation.mapper.ProductMapper;
+import com.indiestation.mapper.ProductSkuMapper;
 import com.indiestation.service.InquiryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +21,6 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +33,8 @@ import java.util.stream.Collectors;
 public class InquiryServiceImpl extends ServiceImpl<InquiryMapper, Inquiry> implements InquiryService {
 
     private final InquiryItemMapper inquiryItemMapper;
+    private final ProductSkuMapper productSkuMapper;
+    private final ProductMapper productMapper;
 
     @Override
     public IPage<Inquiry> getInquiryPage(int current, int size, String inquiryNo,
@@ -65,10 +70,12 @@ public class InquiryServiceImpl extends ServiceImpl<InquiryMapper, Inquiry> impl
 
     @Override
     public List<InquiryItem> getInquiryItems(Long inquiryId) {
-        return inquiryItemMapper.selectList(
+        List<InquiryItem> inquiryItems = inquiryItemMapper.selectList(
                 new LambdaQueryWrapper<InquiryItem>()
                         .eq(InquiryItem::getInquiryId, inquiryId)
         );
+        fillInquiryItemSkuCode(inquiryItems);
+        return inquiryItems;
     }
 
     @Override
@@ -181,5 +188,46 @@ public class InquiryServiceImpl extends ServiceImpl<InquiryMapper, Inquiry> impl
                 .map(InquiryItem::getQuantity)
                 .filter(quantity -> quantity != null && quantity > 0)
                 .reduce(0, Integer::sum);
+    }
+
+    /**
+     * 回填询盘商品的 SKU 编码，便于后台详情页直接展示。
+     */
+    private void fillInquiryItemSkuCode(List<InquiryItem> inquiryItems) {
+        if (inquiryItems == null || inquiryItems.isEmpty()) {
+            return;
+        }
+
+        List<Long> skuIds = inquiryItems.stream()
+                .map(InquiryItem::getSkuId)
+                .filter(skuId -> skuId != null && skuId > 0)
+                .distinct()
+                .toList();
+
+        Map<Long, String> skuCodeMap = skuIds.isEmpty()
+                ? Collections.emptyMap()
+                : productSkuMapper.selectBatchIds(skuIds).stream()
+                .collect(Collectors.toMap(ProductSku::getId, ProductSku::getSkuCode, (left, right) -> left));
+
+        List<Long> productIds = inquiryItems.stream()
+                .map(InquiryItem::getProductId)
+                .filter(productId -> productId != null && productId > 0)
+                .distinct()
+                .toList();
+
+        Map<Long, String> productSkuCodeMap = productIds.isEmpty()
+                ? Collections.emptyMap()
+                : productMapper.selectBatchIds(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, Product::getSkuCode, (left, right) -> left));
+
+        for (InquiryItem inquiryItem : inquiryItems) {
+            String skuCode = inquiryItem.getSkuId() != null
+                    ? skuCodeMap.get(inquiryItem.getSkuId())
+                    : null;
+            if (!StringUtils.hasText(skuCode)) {
+                skuCode = productSkuCodeMap.get(inquiryItem.getProductId());
+            }
+            inquiryItem.setSkuCode(StringUtils.hasText(skuCode) ? skuCode : null);
+        }
     }
 }

@@ -47,6 +47,9 @@ export default async function ContactPage() {
   }
 
   const socialLinks = parseConfigJson<Record<string, string>>(siteConfig.social_links, {});
+  const activeSocialLinks = Object.entries(socialLinks).filter(([_key, url]) =>
+    Boolean(url?.trim())
+  );
 
   const socialLabels: Record<string, string> = {
     facebook: "Facebook",
@@ -120,13 +123,13 @@ export default async function ContactPage() {
           </div>
 
           {/* Social Links */}
-          {Object.keys(socialLinks).length > 0 && (
+          {activeSocialLinks.length > 0 && (
             <div>
               <h3 className="text-lg font-medium tracking-wider uppercase mb-6">
                 Follow Us
               </h3>
               <div className="flex justify-center gap-6">
-                {Object.entries(socialLinks).map(([key, url]) => (
+                {activeSocialLinks.map(([key, url]) => (
                   <a
                     key={key}
                     href={url}
