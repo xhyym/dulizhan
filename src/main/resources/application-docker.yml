@@ -6,6 +6,11 @@ spring:
     url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${DB_NAME:indie_station}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
+    hikari:
+      max-lifetime: 120000          # 必须短于 MySQL wait_timeout，避免拿到已关闭的连接
+      idle-timeout: 60000           # 空闲超过 1 分钟就回收
+      keepalive-time: 30000         # 每 30 秒发一次心跳保活
+      validation-timeout: 5000      # 连接验证超时 5 秒
 
   data:
     redis:

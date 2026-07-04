@@ -1,0 +1,70 @@
+# ---- 限流区定义（http 层）----
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=admin_limit:10m rate=5r/s;
+
+server {
+    listen 8080;
+    server_name _;
+    client_max_body_size 50m;
+
+    # ---- 管理后台 website-boot（签名链接保护 + Cookie 续期）----
+    location /admin/ {
+        # 始终执行签名校验（无参数时 $secure_link 为空字符串）
+        secure_link $arg_md5,$arg_expires;
+        # 签名公式: md5(expires + "/admin" + secret)，不耦合 $uri
+        secure_link_md5 "$secure_link_expires/admin ${ADMIN_SECRET}";
+
+        # 放行条件: Cookie 有效 或 签名有效
+        set $allow 0;
+        if ($cookie_admin_auth = "valid") {
+            set $allow 1;
+        }
+        if ($secure_link = "1") {
+            set $allow 1;
+        }
+        if ($allow = 0) {
+            return 403;
+        }
+
+        # 签名校验通过时种 Cookie（7 天内免签）
+        if ($secure_link = "1") {
+            add_header Set-Cookie "admin_auth=valid; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=604800";
+        }
+
+        # API 限流也适用于管理后台资源
+        limit_req zone=admin_limit burst=5 nodelay;
+
+        alias /usr/share/nginx/html/admin/;
+        try_files $uri $uri/ /admin/index.html;
+    }
+
+    location = /admin {
+        return 301 /admin/;
+    }
+
+    # ---- 后端 API → Spring Boot（限流）----
+    location /api/ {
+        limit_req zone=api_limit burst=20 nodelay;
+        limit_req_status 429;
+
+        proxy_pass http://backend:8080;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+    }
+
+    # ---- 前端门户 Next.js ----
+    location / {
+        proxy_pass http://portal:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+    }
+}

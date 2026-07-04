@@ -33,30 +33,50 @@
           />
         </ElFormItem>
         <ElFormItem label="网站Logo">
-          <ElUpload :http-request="handleLogoUpload" :show-file-list="false" accept="image/*">
-            <ElImage
+          <div style="display: flex; align-items: center; gap: 8px">
+            <ElUpload :http-request="handleLogoUpload" :show-file-list="false" accept="image/*">
+              <ElImage
+                v-if="formData.site_logo"
+                :src="formData.site_logo"
+                style="width: 120px; height: 40px"
+                fit="contain"
+              />
+              <ElButton v-else size="small">上传Logo</ElButton>
+            </ElUpload>
+            <ElButton
               v-if="formData.site_logo"
-              :src="formData.site_logo"
-              style="width: 120px; height: 40px"
-              fit="contain"
+              type="danger"
+              size="small"
+              :icon="Delete"
+              circle
+              @click="handleDeleteLogo"
             />
-            <ElButton v-else size="small">上传Logo</ElButton>
-          </ElUpload>
+          </div>
         </ElFormItem>
         <ElFormItem label="Shop背景图">
-          <ElUpload
-            :http-request="handleProductsBannerUpload"
-            :show-file-list="false"
-            accept="image/*"
-          >
-            <ElImage
+          <div style="display: flex; align-items: center; gap: 8px">
+            <ElUpload
+              :http-request="handleProductsBannerUpload"
+              :show-file-list="false"
+              accept="image/*"
+            >
+              <ElImage
+                v-if="formData.products_banner_image"
+                :src="formData.products_banner_image"
+                style="width: 120px; height: 60px"
+                fit="cover"
+              />
+              <ElButton v-else size="small">上传Shop背景图</ElButton>
+            </ElUpload>
+            <ElButton
               v-if="formData.products_banner_image"
-              :src="formData.products_banner_image"
-              style="width: 120px; height: 60px"
-              fit="cover"
+              type="danger"
+              size="small"
+              :icon="Delete"
+              circle
+              @click="handleDeleteProductsBanner"
             />
-            <ElButton v-else size="small">上传Shop背景图</ElButton>
-          </ElUpload>
+          </div>
         </ElFormItem>
         <ElFormItem label="联系邮箱">
           <ElInput v-model="formData.contact_email" placeholder="请输入联系邮箱" />
@@ -71,6 +91,7 @@
 
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
+  import { Delete } from '@element-plus/icons-vue'
   import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
   import { uploadImage } from '@/api/upload'
 
@@ -126,6 +147,16 @@
     } catch (e: any) {
       ElMessage.error(e.message || '上传失败')
     }
+  }
+
+  function handleDeleteLogo() {
+    formData.value.site_logo = ''
+    ElMessage.success('Logo 已删除')
+  }
+
+  function handleDeleteProductsBanner() {
+    formData.value.products_banner_image = ''
+    ElMessage.success('Shop背景图已删除')
   }
 
   async function handleSave() {

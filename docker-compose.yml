@@ -56,8 +56,14 @@ services:
         VITE_API_URL: ""
     container_name: dulizhan-gateway
     restart: unless-stopped
+    volumes:
+      - /root/osensino.crt:/root/osensino.crt:ro
+      - /root/osensino.key:/root/osensino.key:ro
     ports:
-      - "8080:8080"
+      - "80:8080"
+      - "443:443"
+    environment:
+      ADMIN_SECRET: ${ADMIN_SECRET}
     depends_on:
       - portal
       - backend

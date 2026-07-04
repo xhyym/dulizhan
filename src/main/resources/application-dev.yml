@@ -7,6 +7,11 @@ spring:
     url: jdbc:mysql://152.136.123.201:3306/indie_station?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: mysql_Xdwzfi
+    hikari:
+      max-lifetime: 120000          # 必须短于 MySQL wait_timeout，避免拿到已关闭的连接
+      idle-timeout: 60000           # 空闲超过 1 分钟就回收
+      keepalive-time: 30000         # 每 30 秒发一次心跳保活
+      validation-timeout: 5000      # 连接验证超时 5 秒
 
   # Redis 配置
   data:
@@ -27,4 +32,4 @@ r2:
   access-key-id: 26e7ff428424e28234ed2b952122baa0
   secret-access-key: 7589d31697f6461be205249bcafc1aec84582b703791f2e017cb6c55259eab77
   bucket: osengroup
-  public-url: https://pub-17c3d760aa8d450ab56c3748b44f6cd3.r2.dev
+  public-url: https://files.osensino.com
