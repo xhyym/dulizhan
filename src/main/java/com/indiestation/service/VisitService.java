@@ -1,6 +1,7 @@
 package com.indiestation.service;
 
 import com.indiestation.entity.vo.DashboardVO;
+import com.indiestation.entity.vo.GeoLocation;
 import com.indiestation.entity.vo.VisitorStatsVO;
 
 import java.time.LocalDate;
@@ -18,8 +19,9 @@ public interface VisitService {
      * @param ip        访客IP
      * @param pageUrl   访问页面
      * @param userAgent 浏览器UA
+     * @param headerGeo 从 Cloudflare Header 解析的地理位置（可为 null，null 时降级 IP 查询）
      */
-    void recordVisit(String ip, String pageUrl, String userAgent);
+    void recordVisit(String ip, String pageUrl, String userAgent, GeoLocation headerGeo);
 
     /**
      * 获取仪表盘统计数据

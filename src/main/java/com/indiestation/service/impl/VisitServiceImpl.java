@@ -121,12 +121,13 @@ public class VisitServiceImpl implements VisitService {
             });
 
     @Override
-    public void recordVisit(String ip, String pageUrl, String userAgent) {
+    public void recordVisit(String ip, String pageUrl, String userAgent, GeoLocation headerGeo) {
         VisitRecordTask recordTask = new VisitRecordTask(
                 normalizeIp(ip),
                 normalizePageUrl(pageUrl),
                 normalizeUserAgent(userAgent),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                headerGeo
         );
 
         if (!appendVisitRecordToRedisStream(recordTask)) {
@@ -388,7 +389,10 @@ public class VisitServiceImpl implements VisitService {
         List<VisitLog> visitLogs = new ArrayList<>(batchTasks.size());
 
         for (VisitRecordTask recordTask : batchTasks) {
-            GeoLocation geoLocation = resolveGeoLocation(recordTask.ip(), batchGeoCache);
+            // Cloudflare Header 已解析到地理位置时直接使用，否则降级到 IP 查询
+            GeoLocation geoLocation = recordTask.headerGeo() != null
+                    ? recordTask.headerGeo()
+                    : resolveGeoLocation(recordTask.ip(), batchGeoCache);
             VisitLog visitLog = new VisitLog();
             visitLog.setIp(recordTask.ip());
             visitLog.setCountry(geoLocation.getCountry());
@@ -482,6 +486,11 @@ public class VisitServiceImpl implements VisitService {
         payload.put("pageUrl", recordTask.pageUrl());
         payload.put("userAgent", recordTask.userAgent());
         payload.put("visitTime", recordTask.visitTime().toString());
+        if (recordTask.headerGeo() != null) {
+            payload.put("geoCountry", recordTask.headerGeo().getCountry());
+            payload.put("geoProvince", recordTask.headerGeo().getProvince());
+            payload.put("geoCity", recordTask.headerGeo().getCity());
+        }
 
         try {
             stringRedisTemplate.opsForStream().add(
@@ -679,11 +688,23 @@ public class VisitServiceImpl implements VisitService {
             visitTime = LocalDateTime.now();
         }
 
+        GeoLocation headerGeo = null;
+        String geoCountry = stringValue(payload.get("geoCountry"));
+        String geoCity = stringValue(payload.get("geoCity"));
+        if (StringUtils.hasText(geoCountry) || StringUtils.hasText(geoCity)) {
+            headerGeo = new GeoLocation();
+            headerGeo.setCountry(geoCountry != null ? geoCountry : "");
+            headerGeo.setProvince(stringValue(payload.get("geoProvince")) != null
+                    ? stringValue(payload.get("geoProvince")) : "");
+            headerGeo.setCity(geoCity != null ? geoCity : "");
+        }
+
         return new VisitRecordTask(
                 normalizeIp(stringValue(payload.get("ip"))),
                 normalizePageUrl(stringValue(payload.get("pageUrl"))),
                 normalizeUserAgent(stringValue(payload.get("userAgent"))),
-                visitTime
+                visitTime,
+                headerGeo
         );
     }
 
@@ -790,7 +811,8 @@ public class VisitServiceImpl implements VisitService {
     /**
      * 访客记录入队载荷，只保留落库必需的轻量字段。
      */
-    private record VisitRecordTask(String ip, String pageUrl, String userAgent, LocalDateTime visitTime) {
+    private record VisitRecordTask(String ip, String pageUrl, String userAgent, LocalDateTime visitTime,
+                                   GeoLocation headerGeo) {
     }
 
     /**

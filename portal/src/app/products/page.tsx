@@ -5,6 +5,7 @@ import { portalAPI, Product } from "@/lib/api";
 import PageBanner from "@/components/ui/PageBanner";
 import ProductsCategoryFilter from "@/components/product/ProductsCategoryFilter";
 import ProductsSearchForm from "@/components/product/ProductsSearchForm";
+import ProductsFilterMobile from "@/components/product/ProductsFilterMobile";
 import { buildProductsPageMetadata } from "@/lib/seo";
 import { findCategoryName } from "@/lib/site-config";
 
@@ -75,26 +76,21 @@ export default async function ProductsPage({
       />
 
       {/* Content */}
-      <section className="py-15 px-6 md:px-15">
-        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-10 max-w-[1200px] mx-auto">
-          {/* Sidebar */}
-          <aside>
-            <h3 className="text-[13px] font-medium tracking-wider uppercase mb-6">
-              Filters
-            </h3>
-            <div className="mb-8">
-              <h4 className="text-sm font-medium mb-4">Category</h4>
-              <ProductsCategoryFilter
-                categories={categories}
-                activeCategoryId={categoryId}
-                keyword={keyword}
-              />
-            </div>
+      <section className="py-10 md:py-15 px-4 md:px-15">
+        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 md:gap-10 max-w-[1200px] mx-auto">
+          {/* 移动端筛选按钮 */}
+          <div className="md:hidden">
+            <ProductsFilterMobile categories={categories} activeCategoryId={categoryId} keyword={keyword} />
+          </div>
+
+          {/* Sidebar - 桌面端 */}
+          <aside className="hidden md:block">
+            <FilterSidebar categories={categories} activeCategoryId={categoryId} keyword={keyword} />
           </aside>
 
           {/* Products Grid */}
           <div>
-            <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 mb-6 md:mb-8 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted">
                 {productsData.total ?? 0} products
               </p>
@@ -136,6 +132,30 @@ export default async function ProductsPage({
           </div>
         </div>
       </section>
+    </>
+  );
+}
+
+function FilterSidebar({
+  categories,
+  activeCategoryId,
+  keyword,
+}: {
+  categories: import("@/lib/api").Category[];
+  activeCategoryId?: number;
+  keyword?: string;
+}) {
+  return (
+    <>
+      <h3 className="text-[13px] font-medium tracking-wider uppercase mb-6">Filters</h3>
+      <div className="mb-8">
+        <h4 className="text-sm font-medium mb-4">Category</h4>
+        <ProductsCategoryFilter
+          categories={categories}
+          activeCategoryId={activeCategoryId}
+          keyword={keyword}
+        />
+      </div>
     </>
   );
 }

@@ -28,4 +28,12 @@ public interface EmailService {
      * 校验邮件配置有效性
      */
     void validateEmailConfig(EmailConfigDTO emailConfig);
+
+    /**
+     * 发送每日询盘汇总通知邮件
+     *
+     * @param date  统计日期
+     * @param count 新增询盘数量
+     */
+    void sendDailyInquiryReport(String date, int count);
 }

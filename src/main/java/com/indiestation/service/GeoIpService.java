@@ -1,6 +1,7 @@
 package com.indiestation.service;
 
 import com.indiestation.entity.vo.GeoLocation;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * IP 地理位置解析服务
@@ -16,4 +17,12 @@ public interface GeoIpService {
      * @return 地理位置信息
      */
     GeoLocation resolve(String ip);
+
+    /**
+     * 优先从 Cloudflare Header 中解析地理位置（零延迟）
+     *
+     * @param request HTTP 请求
+     * @return 地理位置信息，Header 缺失时返回 null
+     */
+    GeoLocation resolveFromHeaders(HttpServletRequest request);
 }

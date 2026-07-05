@@ -112,7 +112,7 @@ export default function HeroCarousel({ images, tagline, title, subtitle }: HeroC
 
   return (
     <section
-      className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden select-none cursor-grab active:cursor-grabbing"
+      className="relative h-screen min-h-[500px] md:min-h-[600px] flex items-center justify-center overflow-hidden select-none cursor-grab active:cursor-grabbing"
       style={{ touchAction: "pan-y" }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -144,10 +144,10 @@ export default function HeroCarousel({ images, tagline, title, subtitle }: HeroC
         <p className="text-sm font-light tracking-[4px] uppercase mb-4 opacity-90">
           {tagline}
         </p>
-        <h1 className="text-4xl md:text-6xl font-light tracking-[8px] uppercase mb-6 leading-tight">
+        <h1 className="text-3xl md:text-6xl font-light tracking-[4px] md:tracking-[8px] uppercase mb-4 md:mb-6 leading-tight">
           {title}
         </h1>
-        <p className="text-base font-light tracking-wider mb-10 opacity-90">
+        <p className="text-sm md:text-base font-light tracking-wider mb-8 md:mb-10 opacity-90">
           {subtitle}
         </p>
         <Link

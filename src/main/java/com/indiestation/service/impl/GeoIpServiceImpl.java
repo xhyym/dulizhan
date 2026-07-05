@@ -5,8 +5,10 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.indiestation.entity.vo.GeoLocation;
 import com.indiestation.service.GeoIpService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -53,6 +55,24 @@ public class GeoIpServiceImpl implements GeoIpService {
         }
 
         return GeoLocation.unknown();
+    }
+
+    @Override
+    public GeoLocation resolveFromHeaders(HttpServletRequest request) {
+        String country = request.getHeader("X-Geo-Country");
+        String region = request.getHeader("X-Geo-Region");
+        String city = request.getHeader("X-Geo-City");
+
+        // 至少有一个有效字段才认为 Header 可用
+        if (!StringUtils.hasText(country) && !StringUtils.hasText(city)) {
+            return null;
+        }
+
+        GeoLocation location = new GeoLocation();
+        location.setCountry(country != null ? country : "");
+        location.setProvince(region != null ? region : "");
+        location.setCity(city != null ? city : "");
+        return location;
     }
 
     private boolean isPrivateIp(String ip) {

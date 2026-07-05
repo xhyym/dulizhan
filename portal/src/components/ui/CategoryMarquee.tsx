@@ -94,7 +94,7 @@ export default function CategoryMarquee({ categories }: { categories: Category[]
   if (!hasCategories) return null;
 
   return (
-    <section className="py-30 overflow-hidden">
+    <section className="py-20 md:py-30 overflow-hidden">
       <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase text-center mb-4">
         Shop by Category
       </h2>
@@ -135,7 +135,7 @@ export default function CategoryMarquee({ categories }: { categories: Category[]
 function CategoryCard({ category }: { category: Category }) {
   if (!category.image) {
     return (
-      <div className="flex-shrink-0 w-[300px] h-[400px] mx-3 bg-red-50 flex items-center justify-center rounded">
+      <div className="flex-shrink-0 w-[220px] h-[280px] md:w-[300px] md:h-[400px] mx-2 md:mx-3 bg-red-50 flex items-center justify-center rounded">
         <p className="text-red-500 text-xs text-center px-4">
           分类「{category.name}」未配置图片
         </p>
@@ -146,7 +146,7 @@ function CategoryCard({ category }: { category: Category }) {
   return (
     <Link
       href={`/products?category=${category.id}`}
-      className="flex-shrink-0 w-[300px] h-[400px] mx-3 relative overflow-hidden group/card cursor-pointer rounded transition-transform duration-300 hover:scale-[1.03]"
+      className="flex-shrink-0 w-[220px] h-[280px] md:w-[300px] md:h-[400px] mx-2 md:mx-3 relative overflow-hidden group/card cursor-pointer rounded transition-transform duration-300 hover:scale-[1.03]"
     >
       <Image
         src={category.image}

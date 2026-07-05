@@ -59,6 +59,7 @@ services:
     volumes:
       - /root/osensino.crt:/root/osensino.crt:ro
       - /root/osensino.key:/root/osensino.key:ro
+      - ./ssl:/etc/nginx/ssl:ro
     ports:
       - "80:8080"
       - "443:443"
@@ -67,3 +68,4 @@ services:
     depends_on:
       - portal
       - backend
+

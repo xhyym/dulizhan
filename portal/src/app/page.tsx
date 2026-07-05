@@ -77,7 +77,7 @@ export default async function HomePage() {
       <CategoryMarquee categories={categories} />
 
       {/* Featured Products */}
-      <section className="py-30 px-6 md:px-15 bg-surface">
+      <section className="py-20 md:py-30 px-4 md:px-15 bg-surface">
         <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase text-center mb-4">
           Featured Products
         </h2>
@@ -100,8 +100,8 @@ export default async function HomePage() {
       </section>
 
       {/* Our Story */}
-      <section className="py-30 px-6 md:px-15">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-20 max-w-[1200px] mx-auto items-center">
+      <section className="py-20 md:py-30 px-4 md:px-15">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 max-w-[1200px] mx-auto items-center">
           <div className="aspect-[4/5] overflow-hidden">
             <img
               src={storyImage}

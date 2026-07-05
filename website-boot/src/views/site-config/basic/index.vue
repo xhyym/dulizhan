@@ -84,6 +84,9 @@
         <ElFormItem label="联系WhatsApp">
           <ElInput v-model="formData.contact_whatsapp" placeholder="请输入WhatsApp号码" />
         </ElFormItem>
+        <ElFormItem label="通知邮箱">
+          <ElInput v-model="formData.notification_email" placeholder="用户提交询盘后发送通知到此邮箱" />
+        </ElFormItem>
       </ElForm>
     </ElCard>
   </div>
@@ -108,7 +111,8 @@
     site_logo: '',
     products_banner_image: '',
     contact_email: '',
-    contact_whatsapp: ''
+    contact_whatsapp: '',
+    notification_email: ''
   })
 
   async function loadData() {

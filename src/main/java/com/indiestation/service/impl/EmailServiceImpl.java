@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -184,6 +185,62 @@ public class EmailServiceImpl implements EmailService {
     private boolean isValidEmail(String email) {
         return StringUtils.hasText(email)
                 && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    @Async
+    @Override
+    public void sendDailyInquiryReport(String date, int count) {
+        Map<String, String> configMap = siteConfigService.getConfigMap();
+        String notificationEmail = configMap.get("notification_email");
+        if (!StringUtils.hasText(notificationEmail)) {
+            log.info("未配置通知邮箱，跳过发送每日询盘汇总");
+            return;
+        }
+
+        String htmlContent = buildDailyReportContent(date, count);
+        try {
+            sendHtmlEmail(notificationEmail, "【OSEN FURNITURE】每日询盘汇总 - " + date, htmlContent);
+        } catch (Exception e) {
+            log.error("发送每日询盘汇总邮件失败，日期：{}，通知邮箱：{}", date, notificationEmail, e);
+        }
+    }
+
+    private String buildDailyReportContent(String date, int count) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: #1a1a1a; color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .header h1 { margin: 0; font-size: 20px; font-weight: 400; letter-spacing: 4px; }
+                        .content { background: #f9f9f9; padding: 30px; border: 1px solid #eee; text-align: center; }
+                        .count { font-size: 48px; font-weight: 700; color: #1a1a1a; margin: 20px 0; }
+                        .label { font-size: 16px; color: #666; }
+                        .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>OSEN FURNITURE</h1>
+                            <p style="margin:8px 0 0;font-size:14px;opacity:0.8">每日询盘汇总</p>
+                        </div>
+                        <div class="content">
+                            <p class="label">%s 新增询盘</p>
+                            <div class="count">%d</div>
+                            <p class="label">条</p>
+                        </div>
+                        <div class="footer">
+                            <p>此邮件由系统自动发送，请勿直接回复</p>
+                            <p>如需查看详情，请登录管理后台</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(date, count);
     }
 
     private String getTestEmailContent() {

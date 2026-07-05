@@ -1,6 +1,8 @@
 package com.indiestation.controller.portal;
 
 import com.indiestation.common.Result;
+import com.indiestation.entity.vo.GeoLocation;
+import com.indiestation.service.GeoIpService;
 import com.indiestation.service.VisitService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -19,16 +21,22 @@ import java.util.Map;
 public class VisitController {
 
     private final VisitService visitService;
+    private final GeoIpService geoIpService;
 
     /**
      * 记录访问（门户端页面加载时调用）
+     * 优先从 Cloudflare Header 获取地理位置，无 Header 时降级到 IP API 查询
      */
     @PostMapping
     public Result<Void> recordVisit(@RequestBody Map<String, String> body, HttpServletRequest request) {
         String pageUrl = body.getOrDefault("pageUrl", "/");
         String ip = getClientIp(request);
         String userAgent = request.getHeader("User-Agent");
-        visitService.recordVisit(ip, pageUrl, userAgent);
+
+        // 优先从 Cloudflare Header 解析地理位置（零延迟）
+        GeoLocation headerGeo = geoIpService.resolveFromHeaders(request);
+
+        visitService.recordVisit(ip, pageUrl, userAgent, headerGeo);
         return Result.success();
     }
 

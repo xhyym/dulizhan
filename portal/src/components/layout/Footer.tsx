@@ -75,9 +75,9 @@ export default async function Footer() {
   };
 
   return (
-    <footer className="bg-[#1a1a1a] text-white px-6 md:px-15 py-20">
+    <footer className="bg-[#1a1a1a] text-white px-4 md:px-15 py-12 md:py-20">
       <div className="max-w-[1200px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-15 mb-15">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-15 mb-10 md:mb-15">
           <div>
             <div className="flex items-center gap-3 mb-4">
               {siteLogo ? (
@@ -87,10 +87,10 @@ export default async function Footer() {
                   width={120}
                   height={20}
                   unoptimized
-                  className="h-5 w-auto max-w-[120px] object-contain shrink-0"
+                  className="hidden md:block h-5 w-auto max-w-[120px] object-contain shrink-0"
                 />
               ) : null}
-              <span className="text-lg font-semibold tracking-widest block">
+              <span className="text-base md:text-lg font-semibold tracking-widest block">
                 {siteTitle}
               </span>
             </div>
@@ -167,7 +167,7 @@ export default async function Footer() {
           </div>
           ) : null}
         </div>
-        <div className="border-t border-white/10 pt-10 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t border-white/10 pt-8 md:pt-10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[13px] font-light text-white/40">
             {footerData.copyright}
           </p>

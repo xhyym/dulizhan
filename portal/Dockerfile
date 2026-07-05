@@ -12,6 +12,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# portal 存在 SSR，API 地址在构建期被内联到产物中。
+# 应设置为「浏览器可访问的网关公网地址」（如 http://服务器IP），
+# 这样服务端渲染(容器内)和浏览器端请求都命中同一入口，同源无跨域。
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN npm run build
 
 # ---- 运行阶段 ----

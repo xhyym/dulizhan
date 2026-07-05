@@ -13,12 +13,15 @@ interface ProductsCategoryFilterProps {
   categories: Category[];
   activeCategoryId: number | undefined;
   keyword?: string;
+  /** 移动端抽屉中点击分类后关闭抽屉 */
+  onSelect?: () => void;
 }
 
 export default function ProductsCategoryFilter({
   categories,
   activeCategoryId,
   keyword,
+  onSelect,
 }: ProductsCategoryFilterProps) {
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<number[]>(() =>
     getInitialExpandedCategoryIds(categories, activeCategoryId)
@@ -37,6 +40,7 @@ export default function ProductsCategoryFilter({
       <li>
         <Link
           href={buildProductsPageHref({ keyword })}
+          onClick={onSelect}
           className={`block rounded-sm px-2 py-1 text-sm transition-colors ${
             !activeCategoryId
               ? "bg-surface font-medium text-foreground"
@@ -94,6 +98,7 @@ export default function ProductsCategoryFilter({
                   categoryId: category.id,
                   keyword,
                 })}
+                onClick={onSelect}
                 className={`block flex-1 rounded-sm px-2 py-1 text-sm transition-colors ${
                   isActive
                     ? "font-medium text-foreground"
@@ -118,6 +123,7 @@ export default function ProductsCategoryFilter({
                           categoryId: childCategory.id,
                           keyword,
                         })}
+                        onClick={onSelect}
                         className={`block rounded-sm px-2 py-1 text-sm transition-colors ${
                           isChildActive
                             ? "bg-surface font-medium text-foreground"
