@@ -2,13 +2,21 @@
 .gitignore
 .idea
 *.iml
-target/*
-!target/admin-boot-1.0.0-SNAPSHOT.jar
-portal
-website-boot
+
+# Maven 产物在容器内重新编译
+target
+
+# 依赖与构建产物（体积大且会在容器内重装/重建）
 node_modules
+**/node_modules
+website-boot/dist
+portal/.next
+
+# portal 有独立构建上下文（./portal），根上下文（backend / gateway）用不到
+portal
+
 docs
 deploy
+scripts
 *.md
 .env
-# 这个要改下，从服务器上直接复制过来就行
