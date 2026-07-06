@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  SWIPE_DIRECTION_THRESHOLD,
   resolveSwipeAction,
   shouldTreatAsHorizontalDrag,
 } from "@/lib/hero-carousel-gesture";
@@ -42,6 +41,10 @@ export default function HeroCarousel({ images, tagline, title, subtitle }: HeroC
   function handlePointerDown(event: React.PointerEvent<HTMLElement>) {
     if (images.length <= 1) return;
 
+    // 不拦截可交互元素上的点击，避免 pointer capture 吞掉 click 事件
+    const target = event.target as HTMLElement;
+    if (target.closest("a, button")) return;
+
     dragStartRef.current = { x: event.clientX, y: event.clientY };
     isPointerActiveRef.current = true;
     isHorizontalDragRef.current = false;
@@ -58,10 +61,6 @@ export default function HeroCarousel({ images, tagline, title, subtitle }: HeroC
 
     if (!isHorizontalDragRef.current) {
       isHorizontalDragRef.current = shouldTreatAsHorizontalDrag({ deltaX, deltaY });
-    }
-
-    if (isHorizontalDragRef.current && Math.abs(deltaX) > SWIPE_DIRECTION_THRESHOLD) {
-      suppressClickRef.current = true;
     }
   }
 
@@ -85,11 +84,13 @@ export default function HeroCarousel({ images, tagline, title, subtitle }: HeroC
     resetPointerState();
 
     if (swipeAction === "previous") {
+      suppressClickRef.current = true;
       showPreviousImage();
       return;
     }
 
     if (swipeAction === "next") {
+      suppressClickRef.current = true;
       showNextImage();
     }
   }

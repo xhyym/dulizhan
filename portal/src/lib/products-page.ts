@@ -3,11 +3,13 @@ import type { Category } from "@/lib/api";
 interface BuildProductsPageHrefOptions {
   categoryId?: number;
   keyword?: string;
+  page?: number;
 }
 
 export function buildProductsPageHref({
   categoryId,
   keyword,
+  page,
 }: BuildProductsPageHrefOptions): string {
   const searchParams = new URLSearchParams();
 
@@ -18,6 +20,10 @@ export function buildProductsPageHref({
   const normalizedKeyword = keyword?.trim();
   if (normalizedKeyword) {
     searchParams.set("keyword", normalizedKeyword);
+  }
+
+  if (page && page > 1) {
+    searchParams.set("page", String(page));
   }
 
   const queryString = searchParams.toString();

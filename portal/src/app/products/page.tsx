@@ -6,13 +6,14 @@ import PageBanner from "@/components/ui/PageBanner";
 import ProductsCategoryFilter from "@/components/product/ProductsCategoryFilter";
 import ProductsSearchForm from "@/components/product/ProductsSearchForm";
 import ProductsFilterMobile from "@/components/product/ProductsFilterMobile";
+import ProductsPagination from "@/components/product/ProductsPagination";
 import { buildProductsPageMetadata } from "@/lib/seo";
 import { findCategoryName } from "@/lib/site-config";
 
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; keyword?: string }>;
+  searchParams: Promise<{ category?: string; keyword?: string; page?: string }>;
 }): Promise<Metadata> {
   const params = await searchParams;
   const categoryId = params.category ? Number(params.category) : undefined;
@@ -37,18 +38,19 @@ export async function generateMetadata({
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; keyword?: string }>;
+  searchParams: Promise<{ category?: string; keyword?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const categoryId = params.category ? Number(params.category) : undefined;
   const keyword = params.keyword;
+  const page = Math.max(1, Number(params.page) || 1);
 
   // 并行获取数据
   const [categoriesRaw, productsDataRaw] = await Promise.all([
     portalAPI.getCategories().catch(() => []),
     portalAPI
       .getProducts({
-        current: 1,
+        current: page,
         size: 12,
         categoryId,
         keyword,
@@ -129,6 +131,15 @@ export default async function ProductsPage({
                 </p>
               </div>
             )}
+
+            {/* 分页器 */}
+            <ProductsPagination
+              current={productsData.current ?? 1}
+              total={productsData.total ?? 0}
+              size={productsData.size ?? 12}
+              categoryId={categoryId}
+              keyword={keyword}
+            />
           </div>
         </div>
       </section>
