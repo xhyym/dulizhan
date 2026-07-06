@@ -31,6 +31,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/api/portal/products/**",
                         "/api/portal/site-config",
                         "/api/portal/visit",
+                        "/api/geo",
                         // 其他
                         "/api/v3/system/menus/simple"
                 );
