@@ -240,9 +240,6 @@
                     <ElInput v-model="sku.specName" placeholder="如: 颜色" style="width: 48%; margin-right: 4%" />
                     <ElInput v-model="sku.specValue" placeholder="如: 红色" style="width: 48%" />
                   </ElFormItem>
-                  <ElFormItem label="价格">
-                    <ElInputNumber v-model="sku.price" :min="0" :precision="2" style="width: 100%" />
-                  </ElFormItem>
                   <!-- 库存字段暂时隐藏，后续恢复时保留原有数据结构 -->
                   <!-- <ElFormItem label="库存">
                     <ElInputNumber v-model="sku.stock" :min="0" style="width: 100%" />
@@ -656,6 +653,11 @@ async function handleSubmit() {
   if (!formData.value.skus.length) {
     formData.value.skus = [createDefaultSku()]
   }
+
+  formData.value.skus = formData.value.skus.map((sku) => ({
+    ...sku,
+    price: formData.value.price
+  }))
 
   submitting.value = true
   try {

@@ -119,7 +119,7 @@ public class PortalProductController {
             skuDTO.setSkuCode(sku.getSkuCode());
             skuDTO.setSpecName(sku.getSpecName());
             skuDTO.setSpecValue(sku.getSpecValue());
-            skuDTO.setPrice(sku.getPrice());
+            skuDTO.setPrice(product.getPrice());
             skuDTO.setStock(sku.getStock());
             skuDTO.setStatus(sku.getStatus());
             return skuDTO;

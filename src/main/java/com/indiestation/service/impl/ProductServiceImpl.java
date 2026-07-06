@@ -113,7 +113,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             skuDTO.setSkuCode(sku.getSkuCode());
             skuDTO.setSpecName(sku.getSpecName());
             skuDTO.setSpecValue(sku.getSpecValue());
-            skuDTO.setPrice(sku.getPrice());
+            skuDTO.setPrice(product.getPrice());
             skuDTO.setStock(sku.getStock());
             skuDTO.setStatus(sku.getStatus());
             return skuDTO;
@@ -146,7 +146,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         saveProductImages(product.getId(), dto.getImages());
 
         // 保存SKU
-        saveProductSkus(product.getId(), dto.getSkus());
+        saveProductSkus(product.getId(), dto.getPrice(), dto.getSkus());
     }
 
     @Override
@@ -185,7 +185,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 new LambdaQueryWrapper<ProductSku>()
                         .eq(ProductSku::getProductId, product.getId())
         );
-        saveProductSkus(product.getId(), dto.getSkus());
+        saveProductSkus(product.getId(), dto.getPrice(), dto.getSkus());
     }
 
     @Override
@@ -242,7 +242,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     /**
      * 保存商品SKU
      */
-    private void saveProductSkus(Long productId, List<ProductDTO.SkuDTO> skus) {
+    private void saveProductSkus(Long productId, java.math.BigDecimal productPrice, List<ProductDTO.SkuDTO> skus) {
         if (skus == null || skus.isEmpty()) {
             return;
         }
@@ -252,7 +252,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             sku.setSkuCode(skuDTO.getSkuCode());
             sku.setSpecName(skuDTO.getSpecName());
             sku.setSpecValue(skuDTO.getSpecValue());
-            sku.setPrice(skuDTO.getPrice());
+            sku.setPrice(productPrice);
             sku.setStock(skuDTO.getStock());
             sku.setStatus(skuDTO.getStatus());
             productSkuMapper.insert(sku);

@@ -95,8 +95,7 @@ public class PortalInquiryController {
             item.setProductImage(product.getMainImage());
             item.setQuantity(cart.getQuantity());
 
-            BigDecimal unitPrice = product.getDiscountPrice() != null
-                    ? product.getDiscountPrice() : product.getPrice();
+            BigDecimal unitPrice = product.getPrice();
 
             if (cart.getSkuId() != null) {
                 ProductSku sku = productSkuMapper.selectById(cart.getSkuId());
@@ -106,7 +105,6 @@ public class PortalInquiryController {
                 }
                 item.setSkuId(sku.getId());
                 item.setSkuSpec(buildSkuSpec(sku));
-                unitPrice = sku.getPrice() != null ? sku.getPrice() : unitPrice;
             }
 
             item.setPrice(unitPrice);

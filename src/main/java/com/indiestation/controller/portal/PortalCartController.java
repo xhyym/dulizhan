@@ -66,7 +66,6 @@ public class PortalCartController {
                     vo.setSkuCode(sku.getSkuCode());
                     vo.setSpecName(sku.getSpecName());
                     vo.setSpecValue(sku.getSpecValue());
-                    vo.setSkuPrice(sku.getPrice());
                 }
             }
             result.add(vo);

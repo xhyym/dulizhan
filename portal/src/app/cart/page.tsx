@@ -31,7 +31,7 @@ export default function CartPage() {
 
   const subtotal = items.reduce(
     (sum, item) =>
-      sum + (item.skuPrice || item.price) * item.quantity,
+      sum + item.price * item.quantity,
     0
   );
 
@@ -214,7 +214,7 @@ export default function CartPage() {
                           </div>
                           <div className="flex items-center gap-4">
                             <span className="text-sm font-medium">
-                              ${(item.skuPrice || item.price) * item.quantity}
+                              ${item.price * item.quantity}
                             </span>
                             <button
                               onClick={() => removeItem(item.id)}
