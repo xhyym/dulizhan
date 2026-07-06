@@ -39,7 +39,7 @@
                 <CircleClose />
               </ElIcon>
             </div>
-            <div class="image-tip">建议尺寸 1920x600</div>
+            <div class="image-tip">建议尺寸不低于 1920×600，图片比例接近 16:5</div>
           </ElFormItem>
         </ElForm>
 
@@ -75,6 +75,7 @@
                 <CircleClose />
               </ElIcon>
             </div>
+            <div class="image-tip">建议尺寸不低于 800×1000，图片比例接近 4:5</div>
           </ElFormItem>
           <ElFormItem label="故事内容">
             <ElInput
@@ -140,6 +141,7 @@
                 <CircleClose />
               </ElIcon>
             </div>
+            <div class="image-tip">建议尺寸不低于 1200×800，图片比例接近 3:2</div>
           </ElFormItem>
           <ElFormItem label="标题">
             <ElInput v-model="formData.craftTitle" placeholder="如: HANDCRAFTED WITH CARE" />
@@ -206,6 +208,47 @@ interface StatsItem {
   label: string
 }
 
+interface ImageSize {
+  width: number
+  height: number
+}
+
+interface ImageRule {
+  fieldLabel: string
+  minWidth: number
+  minHeight: number
+  ratioLabel: string
+  minRatio: number
+  maxRatio: number
+}
+
+const ABOUT_IMAGE_RULES: Record<'bannerImage' | 'storyImage' | 'craftImage', ImageRule> = {
+  bannerImage: {
+    fieldLabel: '顶部Banner图片',
+    minWidth: 1920,
+    minHeight: 600,
+    ratioLabel: '16:5',
+    minRatio: 3.1,
+    maxRatio: 3.3
+  },
+  storyImage: {
+    fieldLabel: '品牌故事图片',
+    minWidth: 800,
+    minHeight: 1000,
+    ratioLabel: '4:5',
+    minRatio: 0.76,
+    maxRatio: 0.84
+  },
+  craftImage: {
+    fieldLabel: '工艺展示图片',
+    minWidth: 1200,
+    minHeight: 800,
+    ratioLabel: '3:2',
+    minRatio: 1.45,
+    maxRatio: 1.55
+  }
+}
+
 const formData = ref({
   bannerImage: '',
   storyImage: '',
@@ -247,6 +290,7 @@ async function loadData() {
 
 async function handleImageUpload(options: any, field: 'bannerImage' | 'storyImage' | 'craftImage') {
   try {
+    await validateAboutImage(options.file, ABOUT_IMAGE_RULES[field])
     const url = await uploadImage(options.file)
     formData.value[field] = url
     ElMessage.success('图片上传成功')
@@ -264,6 +308,44 @@ async function handleSave() {
     ElMessage.success('保存成功')
   } finally {
     saving.value = false
+  }
+}
+
+/**
+ * 读取图片真实尺寸，用于上传前做分辨率与比例校验。
+ */
+function readImageSize(file: File): Promise<ImageSize> {
+  return new Promise((resolve, reject) => {
+    const imageUrl = URL.createObjectURL(file)
+    const image = new Image()
+
+    image.onload = () => {
+      const imageSize = { width: image.width, height: image.height }
+      URL.revokeObjectURL(imageUrl)
+      resolve(imageSize)
+    }
+
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl)
+      reject(new Error('图片解析失败，请更换文件后重试'))
+    }
+
+    image.src = imageUrl
+  })
+}
+
+/**
+ * 关于我们页面各模块图片布局固定，上传前直接拦截不合规尺寸，避免前台展示变形。
+ */
+async function validateAboutImage(file: File, rule: ImageRule) {
+  const { width, height } = await readImageSize(file)
+  if (width < rule.minWidth || height < rule.minHeight) {
+    throw new Error(`${rule.fieldLabel}分辨率不能低于 ${rule.minWidth}×${rule.minHeight}`)
+  }
+
+  const ratio = width / height
+  if (ratio < rule.minRatio || ratio > rule.maxRatio) {
+    throw new Error(`${rule.fieldLabel}比例不符合要求，请上传接近 ${rule.ratioLabel} 的图片`)
   }
 }
 

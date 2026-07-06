@@ -38,6 +38,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         List<Category> allCategories = list(
                 new LambdaQueryWrapper<Category>()
                         .orderByAsc(Category::getSort)
+                        .orderByAsc(Category::getId)
         );
 
         // 构建树形结构
@@ -142,6 +143,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         int targetLevel = parentCategory == null ? 1 : calculateCategoryLevel(parentCategory) + 1;
         if (targetLevel > MAX_CATEGORY_LEVEL) {
             throw new BusinessException("商品分类最多只支持二级分类");
+        }
+
+        if (targetLevel == 1 && !StringUtils.hasText(dto.getImage())) {
+            throw new BusinessException("顶级分类必须上传分类图片");
         }
 
         if (targetLevel > 1 && StringUtils.hasText(dto.getImage())) {

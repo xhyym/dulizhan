@@ -282,7 +282,7 @@ public class PdfServiceImpl implements PdfService {
             InquiryItem item = items.get(i);
             addBodyCell(table, String.format("%02d", i + 1), bodyFont, TextAlignment.CENTER);
             addBodyCell(table, defaultText(item.getProductName()), bodyFont, TextAlignment.LEFT);
-            addBodyCell(table, defaultText(item.getSkuSpec()), bodyFont, TextAlignment.LEFT);
+            addBodyCell(table, buildSkuDisplayText(item), bodyFont, TextAlignment.LEFT);
             addBodyCell(table, formatCurrency(item.getPrice()), bodyFont, TextAlignment.RIGHT);
             addBodyCell(table, String.valueOf(item.getQuantity() != null ? item.getQuantity() : 0), bodyFont, TextAlignment.CENTER);
             addBodyCell(table, formatCurrency(calculateLineAmount(item)), bodyFont, TextAlignment.RIGHT);
@@ -606,6 +606,29 @@ public class PdfServiceImpl implements PdfService {
 
     private String formatCurrency(BigDecimal amount) {
         return "¥" + defaultAmount(amount).setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    /**
+     * PDF 明细中合并展示 SKU 编码与规格信息，方便工厂下发时快速核对。
+     */
+    private String buildSkuDisplayText(InquiryItem item) {
+        if (item == null) {
+            return DEFAULT_TEXT;
+        }
+
+        String skuCode = defaultText(item.getSkuCode());
+        String skuSpec = defaultText(item.getSkuSpec());
+
+        if (DEFAULT_TEXT.equals(skuCode) && DEFAULT_TEXT.equals(skuSpec)) {
+            return DEFAULT_TEXT;
+        }
+        if (DEFAULT_TEXT.equals(skuCode)) {
+            return skuSpec;
+        }
+        if (DEFAULT_TEXT.equals(skuSpec)) {
+            return "SKU: " + skuCode;
+        }
+        return "SKU: " + skuCode + "\nSpec: " + skuSpec;
     }
 
     private String formatDateTime(java.time.LocalDateTime dateTime) {

@@ -17,7 +17,7 @@ function getTodayDateString(): string {
 }
 
 export default function CartPage() {
-  const { items, updateItem, removeItem, loading } = useCart();
+  const { items, updateItem, removeItem, refreshCart, loading } = useCart();
   const { user, setShowLogin } = useAuth();
   const authFetch = useAuthFetch();
   const router = useRouter();
@@ -72,6 +72,7 @@ export default function CartPage() {
       }
 
       const data = await res.json();
+      await refreshCart();
       router.push(`/inquiry/success?id=${data.data}`);
     } catch (error: unknown) {
       setSubmitError(
@@ -250,7 +251,12 @@ export default function CartPage() {
                   </div>
                   <div className="mb-6">
                     <MinimalDatePicker
-                      label="Delivery Date"
+                      label={
+                        <>
+                          <span className="mr-1 text-red-600">*</span>
+                          Delivery Date
+                        </>
+                      }
                       value={deliveryDate}
                       minDate={todayDate}
                       onChange={(nextDate) => {

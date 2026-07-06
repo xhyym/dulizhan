@@ -309,6 +309,13 @@ interface ImageRatioRule {
   maxRatio: number
 }
 
+function formatDateTime(dateTime?: string) {
+  if (!dateTime) {
+    return '-'
+  }
+  return dateTime.replace('T', ' ')
+}
+
 const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<Api.Product.ProductItem[]>([])
@@ -405,6 +412,7 @@ const { columns, columnChecks } = useTableColumns(() => [
       })
   },
   { prop: 'name', label: '商品名称', minWidth: 200, showOverflowTooltip: true },
+  { prop: 'skuCode', label: 'SKU编码', width: 180, showOverflowTooltip: true },
   {
     prop: 'price',
     label: '原价',
@@ -432,7 +440,12 @@ const { columns, columnChecks } = useTableColumns(() => [
         row.status === 1 ? '上架' : '下架'
       )
   },
-  { prop: 'createTime', label: '创建时间', width: 180 },
+  {
+    prop: 'createTime',
+    label: '创建时间',
+    width: 180,
+    formatter: (row: any) => formatDateTime(row.createTime)
+  },
   {
     prop: 'operation',
     label: '操作',
@@ -636,6 +649,10 @@ async function handleSubmit() {
   if (formData.value.categoryId === undefined) return ElMessage.warning('请选择商品分类')
   if (formData.value.price === undefined || formData.value.price === null) return ElMessage.warning('请输入商品价格')
   if (!formData.value.skuCode.trim()) return ElMessage.warning('请输入SKU编码')
+  if (!formData.value.mainImage) return ElMessage.warning('请上传商品主图')
+  if (!formData.value.images.length) return ElMessage.warning('请至少上传一张商品副图')
+  if (!formData.value.posterImage) return ElMessage.warning('请上传海报图')
+  if (!formData.value.detailImage) return ElMessage.warning('请上传详情图')
   if (!formData.value.skus.length) {
     formData.value.skus = [createDefaultSku()]
   }

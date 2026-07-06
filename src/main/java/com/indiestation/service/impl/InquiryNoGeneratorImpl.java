@@ -1,29 +1,54 @@
 package com.indiestation.service.impl;
 
-import cn.hutool.core.lang.Snowflake;
-import cn.hutool.core.util.IdUtil;
+import com.indiestation.exception.BusinessException;
 import com.indiestation.service.InquiryNoGenerator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 基于雪花算法的询盘编号生成器
+ * 基于 Redis 每日递增序列的询盘编号生成器
  *
  * @author IndieStation
  */
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class InquiryNoGeneratorImpl implements InquiryNoGenerator {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final String INQUIRY_NO_KEY_PREFIX = "inquiry:no:";
+    private static final int INQUIRY_NO_SEQUENCE_WIDTH = 8;
+    private static final long INQUIRY_NO_KEY_EXPIRE_DAYS = 3L;
 
-    private final Snowflake snowflake = IdUtil.getSnowflake(1, 1);
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public String generateInquiryNo() {
-        String datePrefix = LocalDateTime.now().format(DATE_FORMATTER);
-        long suffix = Math.abs(snowflake.nextId() % 1_000_000_000L);
-        return "INQ" + datePrefix + String.format("%09d", suffix);
+        LocalDate today = LocalDate.now();
+        String datePrefix = today.format(DATE_FORMATTER);
+        String sequenceKey = INQUIRY_NO_KEY_PREFIX + datePrefix;
+
+        try {
+            Long sequence = stringRedisTemplate.opsForValue().increment(sequenceKey);
+            if (sequence == null || sequence <= 0) {
+                throw new BusinessException("生成询盘编号失败，请稍后重试");
+            }
+
+            if (sequence == 1L) {
+                stringRedisTemplate.expire(sequenceKey, INQUIRY_NO_KEY_EXPIRE_DAYS, TimeUnit.DAYS);
+            }
+
+            return "INQ" + datePrefix + String.format("%0" + INQUIRY_NO_SEQUENCE_WIDTH + "d", sequence);
+        } catch (DataAccessException exception) {
+            log.error("通过Redis生成询盘编号失败，日期前缀：{}", datePrefix, exception);
+            throw new BusinessException("生成询盘编号失败，请稍后重试");
+        }
     }
 }

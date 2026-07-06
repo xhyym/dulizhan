@@ -125,6 +125,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createProduct(ProductDTO dto) {
+        validateProductData(dto);
+
         // 保存商品主表
         Product product = new Product();
         product.setName(dto.getName());
@@ -154,6 +156,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
+
+        validateProductData(dto);
 
         // 更新主表
         product.setName(dto.getName());
@@ -199,6 +203,24 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 new LambdaQueryWrapper<ProductSku>()
                         .eq(ProductSku::getProductId, id)
         );
+    }
+
+    /**
+     * 统一校验商品核心图片字段，避免前后台规则不一致。
+     */
+    private void validateProductData(ProductDTO dto) {
+        if (!StringUtils.hasText(dto.getMainImage())) {
+            throw new BusinessException("商品主图不能为空");
+        }
+        if (dto.getImages() == null || dto.getImages().isEmpty()) {
+            throw new BusinessException("商品副图不能为空");
+        }
+        if (!StringUtils.hasText(dto.getPosterImage())) {
+            throw new BusinessException("商品海报图不能为空");
+        }
+        if (!StringUtils.hasText(dto.getDetailImage())) {
+            throw new BusinessException("商品详情图不能为空");
+        }
     }
 
     /**

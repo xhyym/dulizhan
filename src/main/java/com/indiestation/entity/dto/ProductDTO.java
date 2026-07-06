@@ -36,10 +36,13 @@ public class ProductDTO {
     @NotBlank(message = "SKU编码不能为空")
     private String skuCode;
 
+    @NotBlank(message = "商品主图不能为空")
     private String mainImage;
 
+    @NotBlank(message = "商品海报图不能为空")
     private String posterImage;
 
+    @NotBlank(message = "商品详情图不能为空")
     private String detailImage;
 
     private Integer status = 1;

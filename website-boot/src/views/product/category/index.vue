@@ -64,7 +64,7 @@
                 <span>上传图片</span>
               </div>
             </ElUpload>
-            <div class="upload-tip">仅一级分类支持上传分类图片</div>
+            <div class="upload-tip">仅一级分类支持上传分类图片，建议尺寸不低于 600×800，比例接近 3:4</div>
           </div>
         </ElFormItem>
         <ElFormItem label="父级分类">
@@ -108,6 +108,16 @@ const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
 const tableData = ref<Api.Product.Category[]>([])
 const editingCategoryHasChildren = ref(false)
+
+interface ImageSize {
+  width: number
+  height: number
+}
+
+const CATEGORY_IMAGE_MIN_WIDTH = 600
+const CATEGORY_IMAGE_MIN_HEIGHT = 800
+const CATEGORY_IMAGE_MIN_RATIO = 0.72
+const CATEGORY_IMAGE_MAX_RATIO = 0.78
 
 // 搜索表单
 const searchForm = ref({ name: '', status: undefined as number | undefined })
@@ -238,6 +248,11 @@ async function handleSubmit() {
     return
   }
 
+  if (isTopLevelCategory.value && !formData.value.image) {
+    ElMessage.warning('顶级分类必须上传分类图片')
+    return
+  }
+
   if (!isTopLevelCategory.value && formData.value.image) {
     ElMessage.warning('二级分类不能上传分类图片')
     return
@@ -270,11 +285,50 @@ async function handleImageUpload(options: any) {
   }
 
   try {
+    await validateCategoryImage(options.file)
     const url = await uploadImage(options.file)
     formData.value.image = url
     ElMessage.success('图片上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
+  }
+}
+
+/**
+ * 读取分类图片真实尺寸，上传前统一做比例和最小分辨率校验。
+ */
+function readImageSize(file: File): Promise<ImageSize> {
+  return new Promise((resolve, reject) => {
+    const imageUrl = URL.createObjectURL(file)
+    const image = new Image()
+
+    image.onload = () => {
+      const imageSize = { width: image.width, height: image.height }
+      URL.revokeObjectURL(imageUrl)
+      resolve(imageSize)
+    }
+
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl)
+      reject(new Error('分类图片解析失败，请更换文件后重试'))
+    }
+
+    image.src = imageUrl
+  })
+}
+
+/**
+ * 顶级分类卡片在门户采用 3:4 视觉比例，上传时直接拦截异常尺寸。
+ */
+async function validateCategoryImage(file: File) {
+  const { width, height } = await readImageSize(file)
+  if (width < CATEGORY_IMAGE_MIN_WIDTH || height < CATEGORY_IMAGE_MIN_HEIGHT) {
+    throw new Error(`分类图片分辨率不能低于 ${CATEGORY_IMAGE_MIN_WIDTH}×${CATEGORY_IMAGE_MIN_HEIGHT}`)
+  }
+
+  const ratio = width / height
+  if (ratio < CATEGORY_IMAGE_MIN_RATIO || ratio > CATEGORY_IMAGE_MAX_RATIO) {
+    throw new Error('分类图片比例不符合要求，请上传接近 3:4 的图片')
   }
 }
 

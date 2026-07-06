@@ -23,6 +23,7 @@ import com.indiestation.service.InquiryNoGenerator;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +44,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class PortalInquiryController {
+    private static final int MAX_INQUIRY_NO_RETRY_TIMES = 5;
 
     private final InquiryMapper inquiryMapper;
     private final InquiryItemMapper inquiryItemMapper;
@@ -130,7 +132,6 @@ public class PortalInquiryController {
         }
 
         Inquiry inquiry = new Inquiry();
-        inquiry.setInquiryNo(inquiryNoGenerator.generateInquiryNo());
         inquiry.setUserId(userId);
         inquiry.setUserName(user.getUsername());
         inquiry.setUserEmail(user.getEmail());
@@ -139,7 +140,7 @@ public class PortalInquiryController {
         inquiry.setRemark(StringUtils.hasText(dto.getRemark()) ? dto.getRemark().trim() : null);
         inquiry.setDeliveryDate(deliveryDate);
         inquiry.setStatus(0);
-        inquiryMapper.insert(inquiry);
+        insertInquiryWithRetry(inquiry);
 
         // 创建询盘明细
         for (InquiryItem item : items) {
@@ -213,6 +214,23 @@ public class PortalInquiryController {
             return sku.getSpecName();
         }
         return "默认规格";
+    }
+
+    /**
+     * 通过唯一索引做最终防重，极端情况下若编号冲突则自动重试。
+     */
+    private void insertInquiryWithRetry(Inquiry inquiry) {
+        for (int attempt = 1; attempt <= MAX_INQUIRY_NO_RETRY_TIMES; attempt++) {
+            inquiry.setInquiryNo(inquiryNoGenerator.generateInquiryNo());
+            try {
+                inquiryMapper.insert(inquiry);
+                return;
+            } catch (DuplicateKeyException exception) {
+                log.warn("询盘编号冲突，准备重新生成后重试，尝试次数：{}，询盘编号：{}", attempt, inquiry.getInquiryNo());
+            }
+        }
+
+        throw new IllegalStateException("询盘编号生成失败，重试次数已达上限");
     }
 
     private Long getCurrentUserId() {

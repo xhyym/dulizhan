@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 interface MinimalDatePickerProps {
   value: string;
   minDate: string;
   onChange: (value: string) => void;
-  label?: string;
+  label?: ReactNode;
   placeholder?: string;
 }
 

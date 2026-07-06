@@ -51,6 +51,7 @@ export default async function HomePage() {
   const heroTagline = requireConfig(siteConfig, "hero_tagline");
   const heroTitle = requireConfig(siteConfig, "hero_title");
   const heroSubtitle = requireConfig(siteConfig, "hero_subtitle");
+  const featuredCategories = categories.slice(0, 4);
 
   // 解析 about_us 中的 Our Story
   const aboutUs = parseConfigJson<Record<string, string | undefined>>(
@@ -74,7 +75,7 @@ export default async function HomePage() {
       />
 
       {/* Categories */}
-      <CategoryMarquee categories={categories} />
+      <CategoryMarquee categories={featuredCategories} />
 
       {/* Featured Products */}
       <section className="py-20 md:py-30 px-4 md:px-15 bg-surface">

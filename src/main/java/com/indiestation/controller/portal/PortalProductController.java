@@ -12,7 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -38,8 +42,11 @@ public class PortalProductController {
         List<Category> all = categoryMapper.selectList(
                 new LambdaQueryWrapper<Category>()
                         .eq(Category::getStatus, 1)
-                        .orderByAsc(Category::getSort));
-        return Result.success(buildTree(all, 0L));
+                        .orderByAsc(Category::getSort)
+                        .orderByAsc(Category::getId));
+
+        Set<Long> visibleCategoryIds = collectVisibleCategoryIds(all);
+        return Result.success(buildTree(all, 0L, visibleCategoryIds));
     }
 
     /**
@@ -152,11 +159,47 @@ public class PortalProductController {
         }
     }
 
-    private List<Category> buildTree(List<Category> all, Long parentId) {
+    /**
+     * 门户分类仅保留存在上架商品的节点，同时补齐商品所在子分类的祖先节点，避免出现空分类。
+     */
+    private Set<Long> collectVisibleCategoryIds(List<Category> allCategories) {
+        List<Object> productCategoryValues = productMapper.selectObjs(
+                new LambdaQueryWrapper<Product>()
+                        .select(Product::getCategoryId)
+                        .eq(Product::getStatus, 1)
+                        .eq(Product::getDeleted, 0)
+                        .isNotNull(Product::getCategoryId)
+        );
+
+        Map<Long, Category> categoryMap = new HashMap<>();
+        for (Category category : allCategories) {
+            categoryMap.put(category.getId(), category);
+        }
+
+        Set<Long> visibleCategoryIds = new HashSet<>();
+        for (Object productCategoryValue : productCategoryValues) {
+            if (!(productCategoryValue instanceof Number categoryIdNumber)) {
+                continue;
+            }
+
+            Long categoryId = categoryIdNumber.longValue();
+            Category currentCategory = categoryMap.get(categoryId);
+            while (currentCategory != null && visibleCategoryIds.add(currentCategory.getId())) {
+                if (currentCategory.getParentId() == null || currentCategory.getParentId() == 0L) {
+                    break;
+                }
+                currentCategory = categoryMap.get(currentCategory.getParentId());
+            }
+        }
+
+        return visibleCategoryIds;
+    }
+
+    private List<Category> buildTree(List<Category> all, Long parentId, Set<Long> visibleCategoryIds) {
         List<Category> children = new ArrayList<>();
         for (Category c : all) {
-            if (parentId.equals(c.getParentId())) {
-                c.setChildren(buildTree(all, c.getId()));
+            if (parentId.equals(c.getParentId()) && visibleCategoryIds.contains(c.getId())) {
+                c.setChildren(buildTree(all, c.getId(), visibleCategoryIds));
                 children.add(c);
             }
         }
