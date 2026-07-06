@@ -8,7 +8,7 @@
       <ElTableColumn prop="userName" label="客户" min-width="100" show-overflow-tooltip />
       <ElTableColumn prop="inquiryNo" label="询盘号" min-width="140" show-overflow-tooltip />
       <ElTableColumn prop="totalAmount" label="金额" width="100" align="right">
-        <template #default="{ row }"> ¥{{ row.totalAmount }} </template>
+        <template #default="{ row }">{{ formatUsdAmount(row.totalAmount) }}</template>
       </ElTableColumn>
       <ElTableColumn prop="status" label="状态" width="90" align="center">
         <template #default="{ row }">
@@ -26,6 +26,21 @@
   defineProps<{
     data: Record<string, any>[]
   }>()
+
+  const usdCurrencyFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+
+  function formatUsdAmount(amount?: string | number | null) {
+    const normalizedAmount = Number(amount ?? 0)
+    if (Number.isNaN(normalizedAmount)) {
+      return usdCurrencyFormatter.format(0)
+    }
+    return usdCurrencyFormatter.format(normalizedAmount)
+  }
 
   function statusText(status: number) {
     const map: Record<number, string> = { 0: '待处理', 1: '已联系', 2: '已完成', 3: '已取消' }

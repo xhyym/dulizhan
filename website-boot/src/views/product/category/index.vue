@@ -35,7 +35,23 @@
         :columns="columns"
         row-key="id"
         default-expand-all
-      />
+      >
+        <template #rowNumber="{ row }">
+          <span class="row-number-cell">{{ rowIndexMap.get(row.id) ?? '-' }}</span>
+        </template>
+
+        <template #featured="{ row }">
+          <div class="featured-cell">
+            <ElCheckbox
+              v-if="isRootCategory(row)"
+              :model-value="featuredCategoryIds.includes(row.id)"
+              :disabled="savingFeatured"
+              @change="(checked) => handleFeaturedCategoryChange(row, Boolean(checked))"
+            />
+            <span v-else class="featured-placeholder">仅一级分类</span>
+          </div>
+        </template>
+      </ArtTable>
     </ElCard>
 
     <!-- 分类弹窗 -->
@@ -74,9 +90,6 @@
         <ElFormItem v-if="!isTopLevelCategory" label="层级说明">
           <div class="level-tip">当前分类将作为二级分类创建，系统不允许继续向下创建三级分类。</div>
         </ElFormItem>
-        <ElFormItem label="排序">
-          <ElInputNumber v-model="formData.sort" :min="0" :max="999" />
-        </ElFormItem>
         <ElFormItem label="状态">
           <ElRadioGroup v-model="formData.status">
             <ElRadio :value="1">正常</ElRadio>
@@ -97,6 +110,7 @@ import { computed, h, onMounted, ref, watch } from 'vue'
 import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
 import { fetchGetCategoryList, fetchCreateCategory, fetchUpdateCategory, fetchDeleteCategory } from '@/api/product'
+import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
 import { uploadImage } from '@/api/upload'
 import { Plus, Close } from '@element-plus/icons-vue'
 
@@ -104,10 +118,12 @@ defineOptions({ name: 'Category' })
 
 const loading = ref(false)
 const submitting = ref(false)
+const savingFeatured = ref(false)
 const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
 const tableData = ref<Api.Product.Category[]>([])
 const editingCategoryHasChildren = ref(false)
+const featuredCategoryIds = ref<number[]>([])
 
 interface ImageSize {
   width: number
@@ -134,6 +150,24 @@ const filteredData = computed(() => {
     result = filterTree(result, (item) => item.status === searchForm.value.status)
   }
   return result
+})
+
+const rowIndexMap = computed(() => {
+  const indexMap = new Map<number, number>()
+  let currentIndex = 1
+
+  const walkTree = (rows: Api.Product.Category[]) => {
+    rows.forEach((row) => {
+      indexMap.set(row.id, currentIndex)
+      currentIndex += 1
+      if (Array.isArray(row.children) && row.children.length > 0) {
+        walkTree(row.children)
+      }
+    })
+  }
+
+  walkTree(filteredData.value)
+  return indexMap
 })
 
 // 递归过滤树形数据
@@ -166,8 +200,21 @@ const treeData = computed(() => {
 
 const isTopLevelCategory = computed(() => Number(formData.value.parentId ?? 0) === 0)
 
+function formatDateTime(dateTime?: string) {
+  if (!dateTime) {
+    return '-'
+  }
+  return dateTime.replace('T', ' ').replace(/\//g, '-')
+}
+
 // 列配置
 const { columns, columnChecks } = useTableColumns(() => [
+  {
+    prop: 'rowNumber',
+    label: '序号',
+    width: 90,
+    useSlot: true
+  },
   {
     prop: 'image',
     label: '图片',
@@ -178,7 +225,13 @@ const { columns, columnChecks } = useTableColumns(() => [
         : h('span', { style: 'color:#ccc;font-size:12px' }, '无')
   },
   { prop: 'name', label: '分类名称', minWidth: 200 },
-  { prop: 'sort', label: '排序', width: 100, align: 'center' },
+  {
+    prop: 'featured',
+    label: '首页展示',
+    width: 120,
+    align: 'center',
+    useSlot: true
+  },
   {
     prop: 'status',
     label: '状态',
@@ -189,7 +242,12 @@ const { columns, columnChecks } = useTableColumns(() => [
         row.status === 1 ? '正常' : '禁用'
       )
   },
-  { prop: 'createTime', label: '创建时间', width: 180 },
+  {
+    prop: 'createTime',
+    label: '创建时间',
+    width: 180,
+    formatter: (row: Api.Product.Category) => formatDateTime(row.createTime)
+  },
   {
     prop: 'operation',
     label: '操作',
@@ -212,8 +270,22 @@ const { columns, columnChecks } = useTableColumns(() => [
 async function loadData() {
   loading.value = true
   try {
-    const data = await fetchGetCategoryList()
-    tableData.value = data || []
+    const [categoryData, siteConfig] = await Promise.all([
+      fetchGetCategoryList(),
+      fetchGetSiteConfig()
+    ])
+    tableData.value = categoryData || []
+    const normalizedFeaturedCategoryIds = normalizeFeaturedCategoryIds(
+      siteConfig?.featured_category_ids,
+      tableData.value
+    )
+    featuredCategoryIds.value = normalizedFeaturedCategoryIds
+
+    if (shouldSyncFeaturedCategoryIds(siteConfig?.featured_category_ids, normalizedFeaturedCategoryIds)) {
+      await persistFeaturedCategoryIds(normalizedFeaturedCategoryIds, true)
+    }
+  } catch (error) {
+    ElMessage.error('分类数据加载失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -240,6 +312,117 @@ function showDialog(type: 'add' | 'edit', row?: any) {
     formData.value = { id: undefined, name: '', image: '', parentId: 0, sort: 0, status: 1 }
   }
   dialogVisible.value = true
+}
+
+function isRootCategory(row: Api.Product.Category) {
+  return Number(row.parentId) === 0
+}
+
+function parseFeaturedCategoryIds(value?: string) {
+  if (!value?.trim()) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item > 0)
+  } catch (error) {
+    return value
+      .split(',')
+      .map((item) => Number(item.trim()))
+      .filter((item) => Number.isInteger(item) && item > 0)
+  }
+}
+
+function getRootCategories(categories: Api.Product.Category[]) {
+  return categories.filter((category) => isRootCategory(category))
+}
+
+function sortByCreateTimeDesc(categories: Api.Product.Category[]) {
+  return [...categories].sort(
+    (left, right) => new Date(right.createTime).getTime() - new Date(left.createTime).getTime()
+  )
+}
+
+function normalizeFeaturedCategoryIds(value: string | undefined, categories: Api.Product.Category[]) {
+  const rootCategories = getRootCategories(categories)
+  const rootCategoryIdSet = new Set(rootCategories.map((category) => category.id))
+  const normalizedIds: number[] = []
+
+  parseFeaturedCategoryIds(value).forEach((categoryId) => {
+    if (rootCategoryIdSet.has(categoryId) && !normalizedIds.includes(categoryId) && normalizedIds.length < 4) {
+      normalizedIds.push(categoryId)
+    }
+  })
+
+  if (normalizedIds.length > 0 || rootCategories.length === 0) {
+    return normalizedIds
+  }
+
+  return sortByCreateTimeDesc(rootCategories)
+    .slice(0, 4)
+    .map((category) => category.id)
+}
+
+function shouldSyncFeaturedCategoryIds(rawValue: string | undefined, categoryIds: number[]) {
+  const normalizedValue = JSON.stringify(categoryIds)
+  return normalizedValue !== JSON.stringify(parseFeaturedCategoryIds(rawValue))
+}
+
+async function persistFeaturedCategoryIds(categoryIds: number[], silent = false) {
+  await fetchUpdateSiteConfig({
+    featured_category_ids: JSON.stringify(categoryIds)
+  })
+
+  if (!silent) {
+    ElMessage.success('首页展示分类已更新')
+  }
+}
+
+async function handleFeaturedCategoryChange(row: Api.Product.Category, checked: boolean) {
+  if (!isRootCategory(row)) {
+    return
+  }
+
+  const currentIds = [...featuredCategoryIds.value]
+  let nextIds = currentIds
+
+  if (checked) {
+    if (currentIds.includes(row.id)) {
+      return
+    }
+    if (currentIds.length >= 4) {
+      ElMessage.warning('首页最多只能选择 4 个一级分类')
+      return
+    }
+    nextIds = [...currentIds, row.id]
+  } else {
+    if (!currentIds.includes(row.id)) {
+      return
+    }
+    if (currentIds.length <= 1) {
+      ElMessage.warning('首页展示分类至少保留 1 个')
+      return
+    }
+    nextIds = currentIds.filter((categoryId) => categoryId !== row.id)
+  }
+
+  featuredCategoryIds.value = nextIds
+  savingFeatured.value = true
+  try {
+    await persistFeaturedCategoryIds(nextIds)
+  } catch (error) {
+    featuredCategoryIds.value = currentIds
+    ElMessage.error('首页展示分类保存失败，请稍后重试')
+  } finally {
+    savingFeatured.value = false
+  }
 }
 
 async function handleSubmit() {
@@ -272,7 +455,7 @@ async function handleSubmit() {
     }
     ElMessage.success(dialogType.value === 'add' ? '新增成功' : '编辑成功')
     dialogVisible.value = false
-    loadData()
+    await loadData()
   } finally {
     submitting.value = false
   }
@@ -336,7 +519,7 @@ async function handleDelete(row: any) {
   await ElMessageBox.confirm(`确定删除分类「${row.name}」吗？若该分类下仍有子分类或商品，将无法删除。`, '提示', { type: 'warning' })
   await fetchDeleteCategory(row.id)
   ElMessage.success('删除成功')
-  loadData()
+  await loadData()
 }
 
 watch(
@@ -457,5 +640,23 @@ onMounted(() => loadData())
 
 .level-tip {
   color: var(--el-color-warning);
+}
+
+.row-number-cell {
+  display: inline-flex;
+  align-items: center;
+  color: var(--el-text-color-regular);
+}
+
+.featured-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+}
+
+.featured-placeholder {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

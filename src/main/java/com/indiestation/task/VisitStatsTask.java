@@ -21,7 +21,7 @@ public class VisitStatsTask {
     /**
      * 每天凌晨 2:00 执行昨日数据聚合
      */
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(cron = "0 0 2 * * ?", zone = "${app.business-time-zone:Australia/Sydney}")
     public void aggregateDaily() {
         log.info("开始执行访客数据每日聚合任务...");
         try {

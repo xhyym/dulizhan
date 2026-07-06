@@ -96,12 +96,20 @@ export function buildRootMetadata(siteConfig: Record<string, string>): Metadata 
   const siteName = getSiteDisplayName(siteConfig);
   const seoConfig = parseSeoConfig(siteConfig.seo_config);
   const keywords = splitKeywords(seoConfig.home_keywords);
+  const favicon = siteConfig.site_favicon?.trim();
 
   return {
     metadataBase: buildMetadataBase(),
     title: siteName,
     description: normalizeText(seoConfig.home_description || DEFAULT_HOME_DESCRIPTION),
     keywords: uniqueKeywords(keywords),
+    icons: favicon
+      ? {
+          icon: favicon,
+          shortcut: favicon,
+          apple: favicon,
+        }
+      : undefined,
     openGraph: {
       title: siteName,
       description: normalizeText(seoConfig.home_description || DEFAULT_HOME_DESCRIPTION),

@@ -27,13 +27,17 @@ public class SiteConfigServiceImpl extends ServiceImpl<SiteConfigMapper, SiteCon
     private static final Set<String> PUBLIC_CONFIG_KEYS = new LinkedHashSet<>() {{
         add("site_title");
         add("site_logo");
+        add("site_favicon");
         add("contact_email");
         add("contact_whatsapp");
         add("hero_tagline");
         add("hero_title");
         add("hero_subtitle");
         add("banner_images");
+        add("featured_category_ids");
         add("products_banner_image");
+        add("about_banner_image");
+        add("contact_banner_image");
         add("footer_info");
         add("social_links");
         add("seo_config");

@@ -16,12 +16,15 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   const aboutData = parseConfigJson<Record<string, unknown>>(siteConfig.about_us, {});
+  const aboutBannerImage = siteConfig.about_banner_image?.trim();
 
   return buildAboutPageMetadata(siteConfig, {
     storyTitle: typeof aboutData.storyTitle === "string" ? aboutData.storyTitle : undefined,
     storyContent: typeof aboutData.storyContent === "string" ? aboutData.storyContent : undefined,
     imageUrl:
-      typeof aboutData.bannerImage === "string"
+      aboutBannerImage
+        ? aboutBannerImage
+        : typeof aboutData.bannerImage === "string"
         ? aboutData.bannerImage
         : typeof aboutData.storyImage === "string"
           ? aboutData.storyImage
@@ -41,6 +44,7 @@ export default async function AboutPage() {
   }
 
   const aboutData = parseConfigJson<Record<string, unknown> | null>(siteConfig.about_us, null);
+  const configuredAboutBannerImage = siteConfig.about_banner_image?.trim();
   if (!aboutData) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -77,7 +81,7 @@ export default async function AboutPage() {
 
   // 校验必填字段
   const missing: string[] = [];
-  if (!bannerImage) missing.push("bannerImage");
+  if (!configuredAboutBannerImage && !bannerImage) missing.push("bannerImage");
   if (!storyImage) missing.push("storyImage");
   if (!storyTitle) missing.push("storyTitle");
   if (!storyContent) missing.push("storyContent");
@@ -99,7 +103,7 @@ export default async function AboutPage() {
 
   const philosophyItems = philosophy ?? [];
   const statsItems = stats ?? [];
-  const safeBannerImage = bannerImage ?? "";
+  const safeBannerImage = configuredAboutBannerImage || bannerImage || "";
   const safeStoryImage = storyImage ?? "";
   const safeStoryTitle = storyTitle ?? "";
   const safeStoryContent = storyContent ?? "";

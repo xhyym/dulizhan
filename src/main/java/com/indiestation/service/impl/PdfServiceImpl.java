@@ -605,7 +605,7 @@ public class PdfServiceImpl implements PdfService {
     }
 
     private String formatCurrency(BigDecimal amount) {
-        return "¥" + defaultAmount(amount).setScale(2, RoundingMode.HALF_UP).toPlainString();
+        return "$" + defaultAmount(amount).setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
     /**

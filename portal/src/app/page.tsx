@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { portalAPI, Product } from "@/lib/api";
+import { portalAPI, Product, Category } from "@/lib/api";
 import HeroCarousel from "@/components/ui/HeroCarousel";
 import CategoryMarquee from "@/components/ui/CategoryMarquee";
 import { buildHomeMetadata } from "@/lib/seo";
@@ -10,6 +10,46 @@ function requireConfig(config: Record<string, string>, key: string): string {
   const val = config[key];
   if (!val) throw new Error(`站点配置缺失: ${key}，请在后台系统设置中添加`);
   return val;
+}
+
+function parseFeaturedCategoryIds(value: string | undefined): number[] {
+  if (!value?.trim()) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item > 0);
+  } catch {
+    return value
+      .split(",")
+      .map((item) => Number(item.trim()))
+      .filter((item) => Number.isInteger(item) && item > 0);
+  }
+}
+
+function sortCategoriesByCreateTimeDesc(left: Category, right: Category) {
+  return new Date(right.createTime).getTime() - new Date(left.createTime).getTime();
+}
+
+function resolveFeaturedCategories(categories: Category[], siteConfig: Record<string, string>) {
+  const topLevelCategories = categories.filter((category) => category.parentId === 0);
+  const selectedCategoryIds = new Set(parseFeaturedCategoryIds(siteConfig.featured_category_ids));
+  const selectedCategories = topLevelCategories
+    .filter((category) => selectedCategoryIds.has(category.id))
+    .sort(sortCategoriesByCreateTimeDesc);
+
+  if (selectedCategories.length > 0) {
+    return selectedCategories;
+  }
+
+  return [...topLevelCategories].sort(sortCategoriesByCreateTimeDesc).slice(0, 4);
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -51,7 +91,7 @@ export default async function HomePage() {
   const heroTagline = requireConfig(siteConfig, "hero_tagline");
   const heroTitle = requireConfig(siteConfig, "hero_title");
   const heroSubtitle = requireConfig(siteConfig, "hero_subtitle");
-  const featuredCategories = categories.slice(0, 4);
+  const featuredCategories = resolveFeaturedCategories(categories, siteConfig);
 
   // 解析 about_us 中的 Our Story
   const aboutUs = parseConfigJson<Record<string, string | undefined>>(

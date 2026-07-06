@@ -53,7 +53,7 @@
           <ElDescriptionsItem label="客户名称">{{ currentInquiry.userName || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="客户邮箱">{{ currentInquiry.userEmail || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="WhatsApp">{{ currentInquiry.userWhatsapp || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="总金额">¥{{ currentInquiry.totalAmount }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="总金额">{{ formatUsdAmount(currentInquiry.totalAmount) }}</ElDescriptionsItem>
           <ElDescriptionsItem label="配送时间">{{ formatDateText(currentInquiry.deliveryDate) }}</ElDescriptionsItem>
           <ElDescriptionsItem label="创建时间">{{ formatDateText(currentInquiry.createTime) }}</ElDescriptionsItem>
           <ElDescriptionsItem label="更新时间">{{ formatDateText(currentInquiry.updateTime, true) }}</ElDescriptionsItem>
@@ -76,11 +76,11 @@
               <template #default="{ row }">{{ row.skuSpec || '-' }}</template>
             </ElTableColumn>
             <ElTableColumn prop="price" label="单价" width="120" align="right">
-              <template #default="{ row }">¥{{ row.price }}</template>
+              <template #default="{ row }">{{ formatUsdAmount(row.price) }}</template>
             </ElTableColumn>
             <ElTableColumn prop="quantity" label="数量" width="90" align="center" />
             <ElTableColumn label="小计" width="140" align="right">
-              <template #default="{ row }">¥{{ Number(row.price) * Number(row.quantity) }}</template>
+              <template #default="{ row }">{{ formatUsdAmount(Number(row.price) * Number(row.quantity)) }}</template>
             </ElTableColumn>
           </ElTable>
         </div>
@@ -194,6 +194,13 @@ const statusConfig: Record<number, { type: TagType; text: string }> = {
   3: { type: 'info', text: '已取消' }
 }
 
+const usdCurrencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})
+
 function formatDateText(dateValue?: string | null, includeTime = false) {
   if (!dateValue) {
     return '-'
@@ -205,6 +212,14 @@ function formatDateText(dateValue?: string | null, includeTime = false) {
   }
 
   return normalizedDateValue.length >= 10 ? normalizedDateValue.slice(0, 10) : normalizedDateValue
+}
+
+function formatUsdAmount(amount?: string | number | null) {
+  const normalizedAmount = Number(amount ?? 0)
+  if (Number.isNaN(normalizedAmount)) {
+    return usdCurrencyFormatter.format(0)
+  }
+  return usdCurrencyFormatter.format(normalizedAmount)
 }
 
 // 列配置
@@ -234,7 +249,7 @@ const { columns, columnChecks } = useTableColumns(() => [
     label: '总金额',
     width: 100,
     align: 'right',
-    formatter: (row: any) => `¥${row.totalAmount}`
+    formatter: (row: Api.Inquiry.Inquiry) => formatUsdAmount(row.totalAmount)
   },
   {
     prop: 'remark',

@@ -65,6 +65,7 @@ export interface Category {
   parentId: number;
   sort: number;
   status: number;
+  createTime: string;
   children?: Category[];
 }
 

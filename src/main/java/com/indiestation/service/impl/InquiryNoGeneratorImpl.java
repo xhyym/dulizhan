@@ -2,6 +2,7 @@ package com.indiestation.service.impl;
 
 import com.indiestation.exception.BusinessException;
 import com.indiestation.service.InquiryNoGenerator;
+import com.indiestation.support.BusinessTimeProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -28,10 +29,11 @@ public class InquiryNoGeneratorImpl implements InquiryNoGenerator {
     private static final long INQUIRY_NO_KEY_EXPIRE_DAYS = 3L;
 
     private final StringRedisTemplate stringRedisTemplate;
+    private final BusinessTimeProvider businessTimeProvider;
 
     @Override
     public String generateInquiryNo() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = businessTimeProvider.today();
         String datePrefix = today.format(DATE_FORMATTER);
         String sequenceKey = INQUIRY_NO_KEY_PREFIX + datePrefix;
 

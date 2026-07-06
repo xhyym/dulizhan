@@ -58,7 +58,7 @@
         <ElTable :data="customerInquiries" border size="small" v-loading="inquiriesLoading">
           <ElTableColumn prop="inquiryNo" label="询盘编号" width="180" />
           <ElTableColumn prop="totalAmount" label="总金额" width="100" align="right">
-            <template #default="{ row }">¥{{ row.totalAmount }}</template>
+            <template #default="{ row }">{{ formatUsdAmount(row.totalAmount) }}</template>
           </ElTableColumn>
           <ElTableColumn prop="status" label="状态" width="100" align="center">
             <template #default="{ row }">
@@ -111,6 +111,13 @@ const statusConfig: Record<number, { type: TagType; text: string }> = {
   3: { type: 'info', text: '已取消' }
 }
 
+const usdCurrencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})
+
 function formatDateText(dateValue?: string | null, includeTime = false) {
   if (!dateValue) {
     return '-'
@@ -122,6 +129,14 @@ function formatDateText(dateValue?: string | null, includeTime = false) {
   }
 
   return normalizedDateValue.length >= 10 ? normalizedDateValue.slice(0, 10) : normalizedDateValue
+}
+
+function formatUsdAmount(amount?: string | number | null) {
+  const normalizedAmount = Number(amount ?? 0)
+  if (Number.isNaN(normalizedAmount)) {
+    return usdCurrencyFormatter.format(0)
+  }
+  return usdCurrencyFormatter.format(normalizedAmount)
 }
 
 // 列配置

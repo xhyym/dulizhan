@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.indiestation.entity.Inquiry;
 import com.indiestation.mapper.InquiryMapper;
 import com.indiestation.service.EmailService;
+import com.indiestation.support.BusinessTimeProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,15 +26,16 @@ public class InquiryReportTask {
 
     private final InquiryMapper inquiryMapper;
     private final EmailService emailService;
+    private final BusinessTimeProvider businessTimeProvider;
 
     /**
      * 每天上午 8:00 统计昨日新增询盘并发送通知邮件
      */
-    @Scheduled(cron = "0 0 8 * * ?")
+    @Scheduled(cron = "0 0 8 * * ?", zone = "${app.business-time-zone:Australia/Sydney}")
     public void sendDailyReport() {
         log.info("开始执行每日询盘汇总任务...");
         try {
-            LocalDate yesterday = LocalDate.now().minusDays(1);
+            LocalDate yesterday = businessTimeProvider.today().minusDays(1);
             LocalDateTime startOfYesterday = yesterday.atStartOfDay();
             LocalDateTime endOfYesterday = yesterday.plusDays(1).atStartOfDay();
 

@@ -17,6 +17,7 @@ import com.indiestation.mapper.VisitLogMapper;
 import com.indiestation.mapper.VisitStatsMapper;
 import com.indiestation.service.GeoIpService;
 import com.indiestation.service.VisitService;
+import com.indiestation.support.BusinessTimeProvider;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -97,6 +98,7 @@ public class VisitServiceImpl implements VisitService {
     private final UserMapper userMapper;
     private final GeoIpService geoIpService;
     private final StringRedisTemplate stringRedisTemplate;
+    private final BusinessTimeProvider businessTimeProvider;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final BlockingQueue<VisitRecordTask> visitRecordQueue = new LinkedBlockingQueue<>(VISIT_QUEUE_CAPACITY);
@@ -126,7 +128,7 @@ public class VisitServiceImpl implements VisitService {
                 normalizeIp(ip),
                 normalizePageUrl(pageUrl),
                 normalizeUserAgent(userAgent),
-                LocalDateTime.now(),
+                businessTimeProvider.now(),
                 headerGeo
         );
 
@@ -138,7 +140,7 @@ public class VisitServiceImpl implements VisitService {
     @Override
     public DashboardVO getDashboardStats() {
         DashboardVO vo = new DashboardVO();
-        LocalDate today = LocalDate.now();
+        LocalDate today = businessTimeProvider.today();
         String todayStart = today.atStartOfDay().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String todayEnd = today.plusDays(1).atStartOfDay().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
@@ -221,7 +223,7 @@ public class VisitServiceImpl implements VisitService {
 
     @Override
     public void aggregateDailyStats() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = businessTimeProvider.today().minusDays(1);
 
         // 检查是否已聚合
         Long count = visitStatsMapper.selectCount(
@@ -622,7 +624,7 @@ public class VisitServiceImpl implements VisitService {
             if (Boolean.FALSE.equals(stringRedisTemplate.hasKey(VISIT_STREAM_KEY))) {
                 Map<String, String> initPayload = new HashMap<>();
                 initPayload.put(VISIT_STREAM_INIT_FIELD, VISIT_STREAM_INIT_VALUE);
-                initPayload.put("visitTime", LocalDateTime.now().toString());
+                initPayload.put("visitTime", businessTimeProvider.now().toString());
                 stringRedisTemplate.opsForStream().add(
                         StreamRecords.string(initPayload).withStreamKey(VISIT_STREAM_KEY)
                 );
@@ -681,11 +683,11 @@ public class VisitServiceImpl implements VisitService {
         try {
             visitTime = StringUtils.hasText(visitTimeValue)
                     ? LocalDateTime.parse(visitTimeValue)
-                    : LocalDateTime.now();
+                    : businessTimeProvider.now();
         } catch (Exception e) {
             log.warn("解析 Redis Stream 访客时间失败，已使用当前时间兜底: recordId={}, visitTime={}",
                     record.getId().getValue(), visitTimeValue, e);
-            visitTime = LocalDateTime.now();
+            visitTime = businessTimeProvider.now();
         }
 
         GeoLocation headerGeo = null;

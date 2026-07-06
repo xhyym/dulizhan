@@ -50,6 +50,7 @@ export default async function ContactPage() {
   const activeSocialLinks = Object.entries(socialLinks).filter(([_key, url]) =>
     Boolean(url?.trim())
   );
+  const contactBannerImage = siteConfig.contact_banner_image?.trim();
 
   const socialLabels: Record<string, string> = {
     facebook: "Facebook",
@@ -63,7 +64,20 @@ export default async function ContactPage() {
   return (
     <>
       {/* Banner */}
-      <section className="relative h-[40vh] min-h-[300px] flex items-center justify-center bg-[#1a1a1a]">
+      <section className="relative h-[40vh] min-h-[300px] flex items-center justify-center">
+        {contactBannerImage ? (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `
+                linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
+                url(${contactBannerImage}) center/cover no-repeat
+              `,
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[#1a1a1a]" />
+        )}
         <div className="relative z-10 text-center text-white">
           <p className="text-sm font-light tracking-wider mb-2">
             <Link href="/" className="hover:opacity-80">Home</Link> &gt; Contact
