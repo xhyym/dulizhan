@@ -415,16 +415,16 @@ const { columns, columnChecks } = useTableColumns(() => [
     align: 'right',
     formatter: (row: any) => `¥${row.price}`
   },
-  {
-    prop: 'discountPrice',
-    label: '折后价',
-    width: 100,
-    align: 'right',
-    formatter: (row: any) =>
-      row.discountPrice
-        ? h('span', { style: 'color: #f56c6c' }, `¥${row.discountPrice}`)
-        : h('span', {}, '-')
-  },
+  // {
+  //   prop: 'discountPrice',
+  //   label: '折后价',
+  //   width: 100,
+  //   align: 'right',
+  //   formatter: (row: any) =>
+  //     row.discountPrice
+  //       ? h('span', { style: 'color: #f56c6c' }, `¥${row.discountPrice}`)
+  //       : h('span', {}, '-')
+  // },
   {
     prop: 'status',
     label: '状态',
