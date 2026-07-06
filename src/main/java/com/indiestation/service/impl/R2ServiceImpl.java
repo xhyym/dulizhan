@@ -7,6 +7,9 @@ import com.indiestation.service.R2Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.util.StringUtils;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -28,6 +31,7 @@ import java.util.UUID;
 public class R2ServiceImpl implements R2Service {
 
     private final ObjectProvider<S3Presigner> s3PresignerProvider;
+    private final ObjectProvider<S3Client> s3ClientProvider;
     private final R2Config r2Config;
 
     /** 预签名有效期 (分钟) */
@@ -82,6 +86,35 @@ public class R2ServiceImpl implements R2Service {
         return vo;
     }
 
+    @Override
+    public void deleteFileByUrl(String fileUrl) {
+        if (!StringUtils.hasText(fileUrl)) {
+            return;
+        }
+
+        S3Client s3Client = s3ClientProvider.getIfAvailable();
+        if (s3Client == null || !r2Config.isConfigured()) {
+            log.warn("R2 文件存储未配置，跳过删除文件: fileUrl={}", fileUrl);
+            return;
+        }
+
+        String objectKey = extractKeyFromFileUrl(fileUrl);
+        if (!StringUtils.hasText(objectKey)) {
+            log.warn("无法从文件地址中解析 R2 对象 Key，跳过删除: fileUrl={}", fileUrl);
+            return;
+        }
+
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(r2Config.getBucket())
+                    .key(objectKey)
+                    .build());
+            log.info("R2 文件删除成功: key={}, fileUrl={}", objectKey, fileUrl);
+        } catch (Exception exception) {
+            log.error("删除 R2 文件失败: key={}, fileUrl={}", objectKey, fileUrl, exception);
+        }
+    }
+
     /**
      * 生成 R2 对象 Key
      * 格式: images/2026/06/22/{uuid}.jpg
@@ -118,5 +151,25 @@ public class R2ServiceImpl implements R2Service {
         }
         // 也允许 PDF
         return "application/pdf".equals(lower);
+    }
+
+    /**
+     * 从公开访问 URL 中提取对象 Key。
+     */
+    private String extractKeyFromFileUrl(String fileUrl) {
+        String normalizedPublicUrl = r2Config.getPublicUrl();
+        if (!StringUtils.hasText(normalizedPublicUrl)) {
+            return null;
+        }
+
+        String publicUrlPrefix = normalizedPublicUrl.endsWith("/")
+                ? normalizedPublicUrl
+                : normalizedPublicUrl + "/";
+        if (!fileUrl.startsWith(publicUrlPrefix)) {
+            return null;
+        }
+
+        String objectKey = fileUrl.substring(publicUrlPrefix.length()).trim();
+        return StringUtils.hasText(objectKey) ? objectKey : null;
     }
 }

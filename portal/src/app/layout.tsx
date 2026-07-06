@@ -41,6 +41,7 @@ export default async function RootLayout({
   const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
   const siteName = siteConfig ? getSiteDisplayName(siteConfig) : "OSEN FURNITURE";
   const siteLogo = siteConfig?.site_logo?.trim() || "";
+  const siteFavicon = siteConfig?.site_favicon?.trim() || "";
   const analyticsConfigJson = siteConfig?.analytics_config;
 
   let gtmId = "";
@@ -56,6 +57,13 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <head>
+        {siteFavicon ? (
+          <>
+            <link rel="icon" href={siteFavicon} />
+            <link rel="shortcut icon" href={siteFavicon} />
+            <link rel="apple-touch-icon" href={siteFavicon} />
+          </>
+        ) : null}
         <AnalyticsScripts configJson={analyticsConfigJson} />
       </head>
       <body className="min-h-full flex flex-col">

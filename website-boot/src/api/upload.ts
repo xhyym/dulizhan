@@ -34,3 +34,11 @@ export async function uploadImage(file: File): Promise<string> {
 
   return presignedUrl.fileUrl
 }
+
+/** 删除 R2 图片 */
+export function deleteImage(fileUrl: string) {
+  return request.del({
+    url: '/api/admin/upload',
+    params: { fileUrl }
+  })
+}

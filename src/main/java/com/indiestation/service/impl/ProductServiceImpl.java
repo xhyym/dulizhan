@@ -15,6 +15,7 @@ import com.indiestation.mapper.ProductImageMapper;
 import com.indiestation.mapper.ProductMapper;
 import com.indiestation.mapper.ProductSkuMapper;
 import com.indiestation.service.ProductService;
+import com.indiestation.service.R2Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 商品服务实现
@@ -39,6 +42,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private final CategoryMapper categoryMapper;
     private final ProductImageMapper productImageMapper;
     private final ProductSkuMapper productSkuMapper;
+    private final R2Service r2Service;
 
     @Override
     public IPage<Product> getProductPage(int current, int size, String name, Long categoryId, Integer status, String skuCode, String startTime, String endTime) {
@@ -157,6 +161,18 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BusinessException("商品不存在");
         }
 
+        List<ProductImage> existingImages = productImageMapper.selectList(
+                new LambdaQueryWrapper<ProductImage>()
+                        .eq(ProductImage::getProductId, product.getId())
+                        .orderByAsc(ProductImage::getSort)
+        );
+        Set<String> previousFileUrls = collectProductFileUrls(
+                product.getMainImage(),
+                product.getPosterImage(),
+                product.getDetailImage(),
+                existingImages.stream().map(ProductImage::getImageUrl).toList()
+        );
+
         validateProductData(dto);
 
         // 更新主表
@@ -186,11 +202,29 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                         .eq(ProductSku::getProductId, product.getId())
         );
         saveProductSkus(product.getId(), dto.getPrice(), dto.getSkus());
+
+        Set<String> currentFileUrls = collectProductFileUrls(
+                dto.getMainImage(),
+                dto.getPosterImage(),
+                dto.getDetailImage(),
+                dto.getImages()
+        );
+        deleteRemovedFiles(previousFileUrls, currentFileUrls);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteProduct(Long id) {
+        Product product = getById(id);
+        if (product == null) {
+            return;
+        }
+
+        List<ProductImage> existingImages = productImageMapper.selectList(
+                new LambdaQueryWrapper<ProductImage>()
+                        .eq(ProductImage::getProductId, id)
+        );
+
         // 删除商品
         removeById(id);
         // 删除副图
@@ -203,12 +237,24 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 new LambdaQueryWrapper<ProductSku>()
                         .eq(ProductSku::getProductId, id)
         );
+
+        deleteRemovedFiles(
+                collectProductFileUrls(
+                        product.getMainImage(),
+                        product.getPosterImage(),
+                        product.getDetailImage(),
+                        existingImages.stream().map(ProductImage::getImageUrl).toList()
+                ),
+                Set.of()
+        );
     }
 
     /**
      * 统一校验商品核心图片字段，避免前后台规则不一致。
      */
     private void validateProductData(ProductDTO dto) {
+        validateUniqueProductSkuCode(dto);
+
         if (!StringUtils.hasText(dto.getMainImage())) {
             throw new BusinessException("商品主图不能为空");
         }
@@ -220,6 +266,29 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         if (!StringUtils.hasText(dto.getDetailImage())) {
             throw new BusinessException("商品详情图不能为空");
+        }
+    }
+
+    /**
+     * 校验商品主 SKU 编码唯一，避免后台新增或编辑后出现重复编码。
+     */
+    private void validateUniqueProductSkuCode(ProductDTO dto) {
+        String skuCode = dto.getSkuCode() != null ? dto.getSkuCode().trim() : "";
+        if (!StringUtils.hasText(skuCode)) {
+            throw new BusinessException("SKU编码不能为空");
+        }
+
+        dto.setSkuCode(skuCode);
+
+        LambdaQueryWrapper<Product> queryWrapper = new LambdaQueryWrapper<Product>()
+                .eq(Product::getSkuCode, skuCode);
+        if (dto.getId() != null) {
+            queryWrapper.ne(Product::getId, dto.getId());
+        }
+
+        long duplicateCount = count(queryWrapper);
+        if (duplicateCount > 0) {
+            throw new BusinessException("SKU编码已存在，请更换后重试");
         }
     }
 
@@ -256,6 +325,48 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             sku.setStock(skuDTO.getStock());
             sku.setStatus(skuDTO.getStatus());
             productSkuMapper.insert(sku);
+        }
+    }
+
+    /**
+     * 收集商品当前实际引用的全部图片地址，便于后续统一做 R2 清理。
+     */
+    private Set<String> collectProductFileUrls(String mainImage, String posterImage, String detailImage, List<String> images) {
+        Set<String> fileUrls = new LinkedHashSet<>();
+        if (StringUtils.hasText(mainImage)) {
+            fileUrls.add(mainImage.trim());
+        }
+        if (StringUtils.hasText(posterImage)) {
+            fileUrls.add(posterImage.trim());
+        }
+        if (StringUtils.hasText(detailImage)) {
+            fileUrls.add(detailImage.trim());
+        }
+        if (images != null) {
+            for (String imageUrl : images) {
+                if (StringUtils.hasText(imageUrl)) {
+                    fileUrls.add(imageUrl.trim());
+                }
+            }
+        }
+        return fileUrls;
+    }
+
+    /**
+     * 删除已不再被商品引用的 R2 图片文件。
+     */
+    private void deleteRemovedFiles(Set<String> previousFileUrls, Set<String> currentFileUrls) {
+        if (previousFileUrls == null || previousFileUrls.isEmpty()) {
+            return;
+        }
+
+        Set<String> removedFileUrls = new LinkedHashSet<>(previousFileUrls);
+        if (currentFileUrls != null && !currentFileUrls.isEmpty()) {
+            removedFileUrls.removeAll(currentFileUrls);
+        }
+
+        for (String removedFileUrl : removedFileUrls) {
+            r2Service.deleteFileByUrl(removedFileUrl);
         }
     }
 

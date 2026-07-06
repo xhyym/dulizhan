@@ -9,6 +9,7 @@ import org.springframework.util.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
@@ -61,6 +62,33 @@ public class R2Config {
     )
     public S3Presigner s3Presigner() {
         return S3Presigner.builder()
+                .credentialsProvider(
+                        StaticCredentialsProvider.create(
+                                AwsBasicCredentials.create(accessKeyId, secretAccessKey)
+                        )
+                )
+                .region(Region.of("auto"))
+                .endpointOverride(URI.create(endpoint))
+                .serviceConfiguration(
+                        software.amazon.awssdk.services.s3.S3Configuration.builder()
+                                .pathStyleAccessEnabled(true)
+                                .build()
+                )
+                .build();
+    }
+
+    /**
+     * 创建 S3Client Bean（用于删除 R2 对象）
+     */
+    @Bean
+    @ConditionalOnExpression(
+            "T(org.springframework.util.StringUtils).hasText('${r2.endpoint:}')"
+                    + " && T(org.springframework.util.StringUtils).hasText('${r2.access-key-id:}')"
+                    + " && T(org.springframework.util.StringUtils).hasText('${r2.secret-access-key:}')"
+                    + " && T(org.springframework.util.StringUtils).hasText('${r2.public-url:}')"
+    )
+    public S3Client s3Client() {
+        return S3Client.builder()
                 .credentialsProvider(
                         StaticCredentialsProvider.create(
                                 AwsBasicCredentials.create(accessKeyId, secretAccessKey)

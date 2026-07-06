@@ -17,4 +17,11 @@ public interface R2Service {
      * @return 预签名信息
      */
     PresignedUrlVo generateUploadUrl(String fileName, String contentType);
+
+    /**
+     * 根据公开访问 URL 删除 R2 对象。
+     *
+     * @param fileUrl 文件公开访问地址
+     */
+    void deleteFileByUrl(String fileUrl);
 }

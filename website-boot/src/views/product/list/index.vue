@@ -102,9 +102,6 @@
             <ElFormItem label="原价" required>
               <ElInputNumber v-model="formData.price" :min="0" :precision="2" style="width: 100%" />
             </ElFormItem>
-            <ElFormItem label="折后价">
-              <ElInputNumber v-model="formData.discountPrice" :min="0" :precision="2" style="width: 100%" />
-            </ElFormItem>
             <ElFormItem label="SKU编码" required>
               <ElInput v-model="formData.skuCode" placeholder="请输入SKU编码" />
             </ElFormItem>
@@ -178,7 +175,7 @@
                 <ElIcon
                   v-if="formData.posterImage"
                   class="delete-btn"
-                  @click="formData.posterImage = ''"
+                  @click="clearSpecialImage('posterImage')"
                 >
                   <CircleClose />
                 </ElIcon>
@@ -207,7 +204,7 @@
                 <ElIcon
                   v-if="formData.detailImage"
                   class="delete-btn"
-                  @click="formData.detailImage = ''"
+                  @click="clearSpecialImage('detailImage')"
                 >
                   <CircleClose />
                 </ElIcon>
@@ -273,7 +270,7 @@ import {
   fetchCreateProduct,
   fetchUpdateProduct
 } from '@/api/product'
-import { uploadImage } from '@/api/upload'
+import { deleteImage, uploadImage } from '@/api/upload'
 
 defineOptions({ name: 'ProductList' })
 
@@ -318,6 +315,7 @@ const submitting = ref(false)
 const tableData = ref<Api.Product.ProductItem[]>([])
 const categoryOptions = ref<Api.Product.Category[]>([])
 const dialogVisible = ref(false)
+const uploadedImageUrls = ref<string[]>([])
 
 const searchForm = ref({
   name: '',
@@ -526,6 +524,7 @@ function resetSearch() {
 
 // 打开弹窗
 async function openDialog(id?: number) {
+  uploadedImageUrls.value = []
   if (id) {
     try {
       const data = await fetchGetProductDetail(id)
@@ -557,6 +556,7 @@ async function openDialog(id?: number) {
 
 // 重置表单
 function resetForm() {
+  uploadedImageUrls.value = []
   formData.value = createDefaultFormData()
 }
 
@@ -565,6 +565,7 @@ async function handleImageUpload(options: any) {
   try {
     await validateImageRatio(options.file, PRODUCT_MAIN_IMAGE_RULE)
     const url = await uploadImage(options.file)
+    uploadedImageUrls.value.push(url)
     if (!formData.value.mainImage) {
       formData.value.mainImage = url
     } else {
@@ -582,6 +583,7 @@ async function handleSpecialImageUpload(options: any, field: 'posterImage' | 'de
     const ratioRule = field === 'posterImage' ? PRODUCT_POSTER_IMAGE_RULE : PRODUCT_DETAIL_IMAGE_RULE
     await validateImageRatio(options.file, ratioRule)
     const url = await uploadImage(options.file)
+    uploadedImageUrls.value.push(url)
     formData.value[field] = url
     ElMessage.success('图片上传成功')
   } catch (e: any) {
@@ -589,8 +591,25 @@ async function handleSpecialImageUpload(options: any, field: 'posterImage' | 'de
   }
 }
 
+async function deleteUploadedImageIfNeeded(fileUrl?: string) {
+  if (!fileUrl || !uploadedImageUrls.value.includes(fileUrl)) {
+    return
+  }
+
+  try {
+    await deleteImage(fileUrl)
+  } catch (error) {
+    console.error('删除 R2 图片失败', error)
+  } finally {
+    uploadedImageUrls.value = uploadedImageUrls.value.filter((item) => item !== fileUrl)
+  }
+}
+
 // 删除图片
-function removeImage(index: number) {
+async function removeImage(index: number) {
+  const targetImageUrl = allImages.value[index]
+  await deleteUploadedImageIfNeeded(targetImageUrl)
+
   if (index === 0 && formData.value.mainImage) {
     formData.value.mainImage = ''
     if (formData.value.images.length > 0) {
@@ -600,6 +619,12 @@ function removeImage(index: number) {
     const subIndex = formData.value.mainImage ? index - 1 : index
     formData.value.images.splice(subIndex, 1)
   }
+}
+
+async function clearSpecialImage(field: 'posterImage' | 'detailImage') {
+  const fileUrl = formData.value[field]
+  await deleteUploadedImageIfNeeded(fileUrl)
+  formData.value[field] = ''
 }
 
 /**
@@ -658,6 +683,7 @@ async function handleSubmit() {
     ...sku,
     price: formData.value.price
   }))
+  formData.value.discountPrice = undefined
 
   submitting.value = true
   try {
@@ -668,6 +694,7 @@ async function handleSubmit() {
       await fetchCreateProduct(formData.value)
       ElMessage.success('新增成功')
     }
+    uploadedImageUrls.value = []
     dialogVisible.value = false
     loadData()
   } finally {

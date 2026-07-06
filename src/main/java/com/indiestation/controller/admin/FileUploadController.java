@@ -4,6 +4,7 @@ import com.indiestation.common.Result;
 import com.indiestation.entity.vo.PresignedUrlVo;
 import com.indiestation.service.R2Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,5 +32,14 @@ public class FileUploadController {
             @RequestParam String contentType) {
         PresignedUrlVo vo = r2Service.generateUploadUrl(fileName, contentType);
         return Result.success(vo);
+    }
+
+    /**
+     * 删除 R2 文件
+     */
+    @DeleteMapping
+    public Result<Void> deleteFile(@RequestParam String fileUrl) {
+        r2Service.deleteFileByUrl(fileUrl);
+        return Result.success();
     }
 }
