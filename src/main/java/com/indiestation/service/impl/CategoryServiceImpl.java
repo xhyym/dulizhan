@@ -9,6 +9,7 @@ import com.indiestation.exception.BusinessException;
 import com.indiestation.mapper.CategoryMapper;
 import com.indiestation.mapper.ProductMapper;
 import com.indiestation.service.CategoryService;
+import com.indiestation.service.R2Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -32,6 +33,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     private static final int MAX_CATEGORY_LEVEL = 2;
 
     private final ProductMapper productMapper;
+    private final R2Service r2Service;
 
     @Override
     public List<Category> getCategoryTree() {
@@ -76,6 +78,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         if (category == null) {
             throw new BusinessException("分类不存在");
         }
+        String previousImage = category.getImage();
 
         validateCategoryData(dto, category);
         validateDuplicateCategoryName(dto);
@@ -86,6 +89,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         category.setSort(dto.getSort());
         category.setStatus(dto.getStatus());
         updateById(category);
+
+        deleteCategoryImageIfRemoved(previousImage, dto.getImage());
     }
 
     @Override
@@ -109,7 +114,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             throw new BusinessException("该分类下存在商品，无法删除");
         }
 
+        String previousImage = category.getImage();
         removeById(id);
+        deleteCategoryImageIfRemoved(previousImage, null);
     }
 
     /**
@@ -213,5 +220,23 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      */
     private boolean hasChildren(Long categoryId) {
         return count(new LambdaQueryWrapper<Category>().eq(Category::getParentId, categoryId)) > 0;
+    }
+
+    /**
+     * 分类保存或删除成功后，清理已不再被引用的旧图片。
+     */
+    private void deleteCategoryImageIfRemoved(String previousImage, String currentImage) {
+        String normalizedPreviousImage = previousImage != null ? previousImage.trim() : "";
+        String normalizedCurrentImage = currentImage != null ? currentImage.trim() : "";
+
+        if (!StringUtils.hasText(normalizedPreviousImage)) {
+            return;
+        }
+
+        if (normalizedPreviousImage.equals(normalizedCurrentImage)) {
+            return;
+        }
+
+        r2Service.deleteFileByUrl(normalizedPreviousImage);
     }
 }

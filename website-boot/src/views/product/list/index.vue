@@ -75,6 +75,7 @@
       :title="isEdit ? '编辑商品' : '新增商品'"
       width="1100px"
       :close-on-click-modal="false"
+      :before-close="handleDialogBeforeClose"
       @close="resetForm"
     >
       <div class="dialog-content">
@@ -250,7 +251,7 @@
       </div>
 
       <template #footer>
-        <ElButton @click="dialogVisible = false">取消</ElButton>
+        <ElButton @click="handleCancelDialog">取消</ElButton>
         <ElButton type="primary" @click="handleSubmit" :loading="submitting">确定</ElButton>
       </template>
     </ElDialog>
@@ -258,7 +259,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessageBox, ElMessage, ElTag, ElImage } from 'element-plus'
 import { Plus, CircleClose } from '@element-plus/icons-vue'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
@@ -272,6 +274,7 @@ import {
 } from '@/api/product'
 import { deleteImage, uploadImage } from '@/api/upload'
 import { validateImageUpload, type ImageUploadRule } from '@/utils/ui/image-upload'
+import type { DialogBeforeCloseFn } from 'element-plus'
 
 defineOptions({ name: 'ProductList' })
 
@@ -561,6 +564,42 @@ function resetForm() {
   formData.value = createDefaultFormData()
 }
 
+/**
+ * 清理当前弹窗里“已上传但尚未保存入库”的临时图片，避免取消编辑后在 R2 中残留孤儿文件。
+ */
+async function cleanupUnsavedUploadedImages() {
+  if (!uploadedImageUrls.value.length) {
+    return
+  }
+
+  const pendingFileUrls = [...new Set(uploadedImageUrls.value)]
+  for (const fileUrl of pendingFileUrls) {
+    try {
+      await deleteImage(fileUrl)
+    } catch (error) {
+      console.error('清理未保存商品图片失败', error)
+    }
+  }
+
+  uploadedImageUrls.value = []
+}
+
+/**
+ * 点击取消按钮时，先清理临时图片，再关闭弹窗。
+ */
+async function handleCancelDialog() {
+  await cleanupUnsavedUploadedImages()
+  dialogVisible.value = false
+}
+
+/**
+ * 处理弹窗右上角关闭等场景，保证未保存图片不会泄漏到 R2。
+ */
+const handleDialogBeforeClose: DialogBeforeCloseFn = async (done) => {
+  await cleanupUnsavedUploadedImages()
+  done()
+}
+
 // 上传图片
 async function handleImageUpload(options: any) {
   try {
@@ -585,6 +624,7 @@ async function handleSpecialImageUpload(options: any, field: 'posterImage' | 'de
     await validateImageUpload(options.file, imageRule)
     const url = await uploadImage(options.file, imageRule.purpose)
     uploadedImageUrls.value.push(url)
+    await deleteUploadedImageIfNeeded(formData.value[field])
     formData.value[field] = url
     ElMessage.success('图片上传成功')
   } catch (e: any) {
@@ -675,6 +715,12 @@ async function handleDelete(row: any) {
 onMounted(() => {
   loadCategories()
   loadData()
+})
+onBeforeRouteLeave(async () => {
+  await cleanupUnsavedUploadedImages()
+})
+onBeforeUnmount(() => {
+  void cleanupUnsavedUploadedImages()
 })
 </script>
 

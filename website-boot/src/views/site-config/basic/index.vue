@@ -188,16 +188,24 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeUnmount } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Delete, Picture } from '@element-plus/icons-vue'
 import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
-import { uploadImage } from '@/api/upload'
+import { deleteImage, uploadImage } from '@/api/upload'
 import { validateImageUpload, type ImageUploadRule } from '@/utils/ui/image-upload'
 
 defineOptions({ name: 'SiteBasic' })
 
 const loading = ref(false)
 const saving = ref(false)
+type ManagedImageField =
+  | 'site_logo'
+  | 'site_favicon'
+  | 'products_banner_image'
+  | 'about_banner_image'
+  | 'contact_banner_image'
 
 const SITE_LOGO_RULE: ImageUploadRule = {
   purpose: 'site_logo',
@@ -247,6 +255,57 @@ const formData = ref({
   notification_email: ''
 })
 
+const pendingUploadUrls = ref<string[]>([])
+
+function trackPendingUpload(fileUrl: string) {
+  if (!fileUrl) {
+    return
+  }
+
+  if (!pendingUploadUrls.value.includes(fileUrl)) {
+    pendingUploadUrls.value.push(fileUrl)
+  }
+}
+
+function untrackPendingUpload(fileUrl: string) {
+  pendingUploadUrls.value = pendingUploadUrls.value.filter((item) => item !== fileUrl)
+}
+
+async function deletePendingUploadIfNeeded(fileUrl?: string) {
+  const normalizedFileUrl = fileUrl?.trim() || ''
+  if (!normalizedFileUrl || !pendingUploadUrls.value.includes(normalizedFileUrl)) {
+    return
+  }
+
+  try {
+    await deleteImage(normalizedFileUrl)
+  } catch (error) {
+    console.error('删除未保存站点图片失败', error)
+  } finally {
+    untrackPendingUpload(normalizedFileUrl)
+  }
+}
+
+async function cleanupPendingUploads() {
+  const temporaryFileUrls = [...new Set(pendingUploadUrls.value)]
+  for (const fileUrl of temporaryFileUrls) {
+    await deletePendingUploadIfNeeded(fileUrl)
+  }
+}
+
+async function replaceManagedImage(field: ManagedImageField, newFileUrl: string) {
+  const previousFileUrl = formData.value[field]
+  await deletePendingUploadIfNeeded(previousFileUrl)
+  formData.value[field] = newFileUrl
+  trackPendingUpload(newFileUrl)
+}
+
+async function clearManagedImage(field: ManagedImageField, successMessage: string) {
+  await deletePendingUploadIfNeeded(formData.value[field])
+  formData.value[field] = ''
+  ElMessage.success(successMessage)
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -266,7 +325,8 @@ async function loadData() {
 async function handleLogoUpload(options: any) {
   try {
     await validateImageUpload(options.file, SITE_LOGO_RULE)
-    formData.value.site_logo = await uploadImage(options.file, SITE_LOGO_RULE.purpose)
+    const fileUrl = await uploadImage(options.file, SITE_LOGO_RULE.purpose)
+    await replaceManagedImage('site_logo', fileUrl)
     ElMessage.success('Logo上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -276,7 +336,8 @@ async function handleLogoUpload(options: any) {
 async function handleFaviconUpload(options: any) {
   try {
     await validateImageUpload(options.file, SITE_FAVICON_RULE)
-    formData.value.site_favicon = await uploadImage(options.file, SITE_FAVICON_RULE.purpose)
+    const fileUrl = await uploadImage(options.file, SITE_FAVICON_RULE.purpose)
+    await replaceManagedImage('site_favicon', fileUrl)
     ElMessage.success('Title Logo 上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -289,7 +350,8 @@ async function handleProductsBannerUpload(options: any) {
       ...PAGE_BANNER_RULE,
       fieldLabel: 'Shop背景图'
     })
-    formData.value.products_banner_image = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
+    const fileUrl = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
+    await replaceManagedImage('products_banner_image', fileUrl)
     ElMessage.success('Shop背景图上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -302,7 +364,8 @@ async function handleAboutBannerUpload(options: any) {
       ...PAGE_BANNER_RULE,
       fieldLabel: 'About背景图'
     })
-    formData.value.about_banner_image = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
+    const fileUrl = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
+    await replaceManagedImage('about_banner_image', fileUrl)
     ElMessage.success('About背景图上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -315,42 +378,39 @@ async function handleContactBannerUpload(options: any) {
       ...PAGE_BANNER_RULE,
       fieldLabel: 'Contact背景图'
     })
-    formData.value.contact_banner_image = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
+    const fileUrl = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
+    await replaceManagedImage('contact_banner_image', fileUrl)
     ElMessage.success('Contact背景图上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
   }
 }
 
-function handleDeleteLogo() {
-  formData.value.site_logo = ''
-  ElMessage.success('Logo 已删除')
+async function handleDeleteLogo() {
+  await clearManagedImage('site_logo', 'Logo 已删除')
 }
 
-function handleDeleteFavicon() {
-  formData.value.site_favicon = ''
-  ElMessage.success('Title Logo 已删除')
+async function handleDeleteFavicon() {
+  await clearManagedImage('site_favicon', 'Title Logo 已删除')
 }
 
-function handleDeleteProductsBanner() {
-  formData.value.products_banner_image = ''
-  ElMessage.success('Shop背景图已删除')
+async function handleDeleteProductsBanner() {
+  await clearManagedImage('products_banner_image', 'Shop背景图已删除')
 }
 
-function handleDeleteAboutBanner() {
-  formData.value.about_banner_image = ''
-  ElMessage.success('About背景图已删除')
+async function handleDeleteAboutBanner() {
+  await clearManagedImage('about_banner_image', 'About背景图已删除')
 }
 
-function handleDeleteContactBanner() {
-  formData.value.contact_banner_image = ''
-  ElMessage.success('Contact背景图已删除')
+async function handleDeleteContactBanner() {
+  await clearManagedImage('contact_banner_image', 'Contact背景图已删除')
 }
 
 async function handleSave() {
   saving.value = true
   try {
     await fetchUpdateSiteConfig({ ...formData.value })
+    pendingUploadUrls.value = []
     ElMessage.success('保存成功')
   } finally {
     saving.value = false
@@ -358,6 +418,12 @@ async function handleSave() {
 }
 
 onMounted(() => loadData())
+onBeforeRouteLeave(async () => {
+  await cleanupPendingUploads()
+})
+onBeforeUnmount(() => {
+  void cleanupPendingUploads()
+})
 </script>
 
 <style scoped lang="scss">

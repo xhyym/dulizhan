@@ -55,7 +55,12 @@
     </ElCard>
 
     <!-- 分类弹窗 -->
-    <ElDialog v-model="dialogVisible" :title="dialogType === 'add' ? '新增分类' : '编辑分类'" width="500px">
+    <ElDialog
+      v-model="dialogVisible"
+      :title="dialogType === 'add' ? '新增分类' : '编辑分类'"
+      width="500px"
+      :before-close="handleDialogBeforeClose"
+    >
       <ElForm :model="formData" label-width="80px">
         <ElFormItem label="分类名称">
           <ElInput v-model="formData.name" placeholder="请输入分类名称" />
@@ -67,7 +72,7 @@
             </div>
             <div v-else-if="formData.image" class="image-preview">
               <img :src="formData.image" alt="分类图片" />
-              <ElIcon class="remove-btn" @click="formData.image = ''"><Close /></ElIcon>
+              <ElIcon class="remove-btn" @click="handleDeleteCategoryImage"><Close /></ElIcon>
             </div>
             <ElUpload
               v-else
@@ -98,7 +103,7 @@
         </ElFormItem>
       </ElForm>
       <template #footer>
-        <ElButton @click="dialogVisible = false">取消</ElButton>
+        <ElButton @click="handleCancelDialog">取消</ElButton>
         <ElButton type="primary" @click="handleSubmit" :loading="submitting">确定</ElButton>
       </template>
     </ElDialog>
@@ -106,14 +111,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
 import { useTableColumns } from '@/hooks/core/useTableColumns'
 import { fetchGetCategoryList, fetchCreateCategory, fetchUpdateCategory, fetchDeleteCategory } from '@/api/product'
 import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
-import { uploadImage } from '@/api/upload'
+import { deleteImage, uploadImage } from '@/api/upload'
 import { Plus, Close } from '@element-plus/icons-vue'
 import { validateImageUpload, type ImageUploadRule } from '@/utils/ui/image-upload'
+import type { DialogBeforeCloseFn } from 'element-plus'
 
 defineOptions({ name: 'Category' })
 
@@ -125,6 +132,7 @@ const dialogType = ref<'add' | 'edit'>('add')
 const tableData = ref<Api.Product.Category[]>([])
 const editingCategoryHasChildren = ref(false)
 const featuredCategoryIds = ref<number[]>([])
+const pendingUploadedImageUrl = ref('')
 
 const CATEGORY_IMAGE_RULE: ImageUploadRule = {
   purpose: 'category_image',
@@ -299,6 +307,7 @@ function resetSearch() {
 
 function showDialog(type: 'add' | 'edit', row?: any) {
   dialogType.value = type
+  pendingUploadedImageUrl.value = ''
   if (type === 'edit' && row) {
     editingCategoryHasChildren.value = Array.isArray(row.children) && row.children.length > 0
     formData.value = {
@@ -456,11 +465,48 @@ async function handleSubmit() {
       await fetchUpdateCategory(formData.value.id!, formData.value)
     }
     ElMessage.success(dialogType.value === 'add' ? '新增成功' : '编辑成功')
+    pendingUploadedImageUrl.value = ''
     dialogVisible.value = false
     await loadData()
   } finally {
     submitting.value = false
   }
+}
+
+async function deletePendingCategoryImageIfNeeded(fileUrl?: string) {
+  const normalizedFileUrl = fileUrl?.trim() || ''
+  if (!normalizedFileUrl || normalizedFileUrl !== pendingUploadedImageUrl.value) {
+    return
+  }
+
+  try {
+    await deleteImage(normalizedFileUrl)
+  } catch (error) {
+    console.error('删除未保存分类图片失败', error)
+  } finally {
+    if (pendingUploadedImageUrl.value === normalizedFileUrl) {
+      pendingUploadedImageUrl.value = ''
+    }
+  }
+}
+
+async function cleanupPendingCategoryImage() {
+  await deletePendingCategoryImageIfNeeded(pendingUploadedImageUrl.value)
+}
+
+async function handleDeleteCategoryImage() {
+  await deletePendingCategoryImageIfNeeded(formData.value.image)
+  formData.value.image = ''
+}
+
+async function handleCancelDialog() {
+  await cleanupPendingCategoryImage()
+  dialogVisible.value = false
+}
+
+const handleDialogBeforeClose: DialogBeforeCloseFn = async (done) => {
+  await cleanupPendingCategoryImage()
+  done()
 }
 
 async function handleImageUpload(options: any) {
@@ -472,6 +518,8 @@ async function handleImageUpload(options: any) {
   try {
     await validateImageUpload(options.file, CATEGORY_IMAGE_RULE)
     const url = await uploadImage(options.file, CATEGORY_IMAGE_RULE.purpose)
+    await deletePendingCategoryImageIfNeeded(formData.value.image)
+    pendingUploadedImageUrl.value = url
     formData.value.image = url
     ElMessage.success('图片上传成功')
   } catch (e: any) {
@@ -491,6 +539,7 @@ watch(
   (parentId, previousParentId) => {
     const normalizedParentId = Number(parentId ?? 0)
     if (normalizedParentId !== 0 && formData.value.image) {
+      void deletePendingCategoryImageIfNeeded(formData.value.image)
       formData.value.image = ''
       if (dialogVisible.value && previousParentId !== undefined) {
         ElMessage.warning('二级分类不支持分类图片，已自动清空当前图片')
@@ -500,6 +549,12 @@ watch(
 )
 
 onMounted(() => loadData())
+onBeforeRouteLeave(async () => {
+  await cleanupPendingCategoryImage()
+})
+onBeforeUnmount(() => {
+  void cleanupPendingCategoryImage()
+})
 </script>
 
 <style scoped lang="scss">

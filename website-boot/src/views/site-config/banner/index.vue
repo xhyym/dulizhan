@@ -27,7 +27,7 @@
                   accept="image/*">
                   <ElButton size="small" type="primary" link>更换图片</ElButton>
                 </ElUpload>
-                <ElButton size="small" type="danger" link @click="banners.splice(index, 1)">删除</ElButton>
+                <ElButton size="small" type="danger" link @click="handleRemoveBanner(index)">删除</ElButton>
               </div>
             </div>
           </ElCard>
@@ -38,15 +38,18 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeUnmount } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
-import { uploadImage } from '@/api/upload'
+import { deleteImage, uploadImage } from '@/api/upload'
 import { validateImageUpload, type ImageUploadRule } from '@/utils/ui/image-upload'
 
 defineOptions({ name: 'SiteBanner' })
 
 const loading = ref(false)
 const saving = ref(false)
+const pendingUploadUrls = ref<string[]>([])
 
 interface Banner {
   image: string
@@ -86,14 +89,61 @@ function addBanner() {
   banners.value.push({ image: '', title: '', link: '' })
 }
 
+function trackPendingUpload(fileUrl: string) {
+  if (!fileUrl) {
+    return
+  }
+
+  if (!pendingUploadUrls.value.includes(fileUrl)) {
+    pendingUploadUrls.value.push(fileUrl)
+  }
+}
+
+function untrackPendingUpload(fileUrl: string) {
+  pendingUploadUrls.value = pendingUploadUrls.value.filter((item) => item !== fileUrl)
+}
+
+async function deletePendingUploadIfNeeded(fileUrl?: string) {
+  const normalizedFileUrl = fileUrl?.trim() || ''
+  if (!normalizedFileUrl || !pendingUploadUrls.value.includes(normalizedFileUrl)) {
+    return
+  }
+
+  try {
+    await deleteImage(normalizedFileUrl)
+  } catch (error) {
+    console.error('删除未保存轮播图失败', error)
+  } finally {
+    untrackPendingUpload(normalizedFileUrl)
+  }
+}
+
+async function cleanupPendingUploads() {
+  const temporaryFileUrls = [...new Set(pendingUploadUrls.value)]
+  for (const fileUrl of temporaryFileUrls) {
+    await deletePendingUploadIfNeeded(fileUrl)
+  }
+}
+
 async function handleBannerUpload(options: any, index: number) {
   try {
     await validateImageUpload(options.file, HOME_BANNER_RULE)
-    banners.value[index].image = await uploadImage(options.file, HOME_BANNER_RULE.purpose)
+    const fileUrl = await uploadImage(options.file, HOME_BANNER_RULE.purpose)
+    await deletePendingUploadIfNeeded(banners.value[index]?.image)
+    trackPendingUpload(fileUrl)
+    banners.value[index].image = fileUrl
     ElMessage.success('上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
   }
+}
+
+async function handleRemoveBanner(index: number) {
+  const removedBanner = banners.value[index]
+  if (removedBanner?.image) {
+    await deletePendingUploadIfNeeded(removedBanner.image)
+  }
+  banners.value.splice(index, 1)
 }
 
 async function handleSave() {
@@ -102,6 +152,7 @@ async function handleSave() {
     await fetchUpdateSiteConfig({
       banner_images: JSON.stringify(banners.value)
     })
+    pendingUploadUrls.value = []
     ElMessage.success('保存成功')
   } finally {
     saving.value = false
@@ -109,6 +160,12 @@ async function handleSave() {
 }
 
 onMounted(() => loadData())
+onBeforeRouteLeave(async () => {
+  await cleanupPendingUploads()
+})
+onBeforeUnmount(() => {
+  void cleanupPendingUploads()
+})
 </script>
 
 <style scoped lang="scss">

@@ -34,7 +34,7 @@
               <ElIcon
                 v-if="formData.bannerImage"
                 class="delete-btn"
-                @click="formData.bannerImage = ''"
+                @click="handleDeleteImage('bannerImage')"
               >
                 <CircleClose />
               </ElIcon>
@@ -70,7 +70,7 @@
               <ElIcon
                 v-if="formData.storyImage"
                 class="delete-btn"
-                @click="formData.storyImage = ''"
+                @click="handleDeleteImage('storyImage')"
               >
                 <CircleClose />
               </ElIcon>
@@ -136,7 +136,7 @@
               <ElIcon
                 v-if="formData.craftImage"
                 class="delete-btn"
-                @click="formData.craftImage = ''"
+                @click="handleDeleteImage('craftImage')"
               >
                 <CircleClose />
               </ElIcon>
@@ -187,16 +187,19 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeUnmount } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, CircleClose } from '@element-plus/icons-vue'
 import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
-import { uploadImage } from '@/api/upload'
+import { deleteImage, uploadImage } from '@/api/upload'
 import { validateImageUpload } from '@/utils/ui/image-upload'
 
 defineOptions({ name: 'SiteAbout' })
 
 const loading = ref(false)
 const saving = ref(false)
+const pendingUploadUrls = ref<string[]>([])
 
 interface PhilosophyItem {
   icon: string
@@ -271,6 +274,42 @@ const formData = ref({
   ctaButtonText: ''
 })
 
+function trackPendingUpload(fileUrl: string) {
+  if (!fileUrl) {
+    return
+  }
+
+  if (!pendingUploadUrls.value.includes(fileUrl)) {
+    pendingUploadUrls.value.push(fileUrl)
+  }
+}
+
+function untrackPendingUpload(fileUrl: string) {
+  pendingUploadUrls.value = pendingUploadUrls.value.filter((item) => item !== fileUrl)
+}
+
+async function deletePendingUploadIfNeeded(fileUrl?: string) {
+  const normalizedFileUrl = fileUrl?.trim() || ''
+  if (!normalizedFileUrl || !pendingUploadUrls.value.includes(normalizedFileUrl)) {
+    return
+  }
+
+  try {
+    await deleteImage(normalizedFileUrl)
+  } catch (error) {
+    console.error('删除未保存关于我们图片失败', error)
+  } finally {
+    untrackPendingUpload(normalizedFileUrl)
+  }
+}
+
+async function cleanupPendingUploads() {
+  const temporaryFileUrls = [...new Set(pendingUploadUrls.value)]
+  for (const fileUrl of temporaryFileUrls) {
+    await deletePendingUploadIfNeeded(fileUrl)
+  }
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -296,11 +335,18 @@ async function handleImageUpload(options: any, field: 'bannerImage' | 'storyImag
       maxSizeInBytes: imageRule.purpose === 'about_story' ? 6 * 1024 * 1024 : 8 * 1024 * 1024
     })
     const url = await uploadImage(options.file, imageRule.purpose)
+    await deletePendingUploadIfNeeded(formData.value[field])
+    trackPendingUpload(url)
     formData.value[field] = url
     ElMessage.success('图片上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
   }
+}
+
+async function handleDeleteImage(field: 'bannerImage' | 'storyImage' | 'craftImage') {
+  await deletePendingUploadIfNeeded(formData.value[field])
+  formData.value[field] = ''
 }
 
 async function handleSave() {
@@ -309,6 +355,7 @@ async function handleSave() {
     await fetchUpdateSiteConfig({
       about_us: JSON.stringify(formData.value)
     })
+    pendingUploadUrls.value = []
     ElMessage.success('保存成功')
   } finally {
     saving.value = false
@@ -316,6 +363,12 @@ async function handleSave() {
 }
 
 onMounted(() => loadData())
+onBeforeRouteLeave(async () => {
+  await cleanupPendingUploads()
+})
+onBeforeUnmount(() => {
+  void cleanupPendingUploads()
+})
 </script>
 
 <style scoped lang="scss">
