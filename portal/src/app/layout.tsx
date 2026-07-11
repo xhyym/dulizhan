@@ -53,6 +53,7 @@ export default async function RootLayout({
       customBodyHtml = analytics.custom_body?.trim() || "";
     } catch { /* ignore parse errors */ }
   }
+  const footerContent = await Footer();
 
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
@@ -85,7 +86,7 @@ export default async function RootLayout({
               <VisitTracker />
             </Suspense>
             <main className="flex-1">{children}</main>
-            <Footer />
+            {footerContent}
             <LoginModal />
             <TranslateProvider />
           </CartProvider>

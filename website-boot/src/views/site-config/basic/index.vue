@@ -192,16 +192,45 @@ import { ElMessage } from 'element-plus'
 import { Delete, Picture } from '@element-plus/icons-vue'
 import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
 import { uploadImage } from '@/api/upload'
+import { validateImageUpload, type ImageUploadRule } from '@/utils/ui/image-upload'
 
 defineOptions({ name: 'SiteBasic' })
 
-interface ImageSize {
-  width: number
-  height: number
-}
-
 const loading = ref(false)
 const saving = ref(false)
+
+const SITE_LOGO_RULE: ImageUploadRule = {
+  purpose: 'site_logo',
+  fieldLabel: '网站 Logo',
+  minWidth: 360,
+  minHeight: 120,
+  ratioLabel: '3:1',
+  minRatio: 2.7,
+  maxRatio: 3.3,
+  maxSizeInBytes: 3 * 1024 * 1024
+}
+
+const SITE_FAVICON_RULE: ImageUploadRule = {
+  purpose: 'site_favicon',
+  fieldLabel: 'Title Logo',
+  minWidth: 256,
+  minHeight: 256,
+  ratioLabel: '1:1',
+  minRatio: 0.95,
+  maxRatio: 1.05,
+  maxSizeInBytes: 2 * 1024 * 1024
+}
+
+const PAGE_BANNER_RULE: ImageUploadRule = {
+  purpose: 'site_page_banner',
+  fieldLabel: '页面背景图',
+  minWidth: 1920,
+  minHeight: 600,
+  ratioLabel: '16:5',
+  minRatio: 3.1,
+  maxRatio: 3.3,
+  maxSizeInBytes: 8 * 1024 * 1024
+}
 
 const formData = ref({
   site_title: '',
@@ -234,42 +263,10 @@ async function loadData() {
   }
 }
 
-function readImageSize(file: File): Promise<ImageSize> {
-  return new Promise((resolve, reject) => {
-    const imageUrl = URL.createObjectURL(file)
-    const image = new Image()
-
-    image.onload = () => {
-      const imageSize = { width: image.width, height: image.height }
-      URL.revokeObjectURL(imageUrl)
-      resolve(imageSize)
-    }
-
-    image.onerror = () => {
-      URL.revokeObjectURL(imageUrl)
-      reject(new Error('图片解析失败，请更换文件后重试'))
-    }
-
-    image.src = imageUrl
-  })
-}
-
-async function validateImage(file: File, minWidth: number, minHeight: number, minRatio: number, maxRatio: number, label: string, ratioLabel: string) {
-  const { width, height } = await readImageSize(file)
-  if (width < minWidth || height < minHeight) {
-    throw new Error(`${label}分辨率不能低于 ${minWidth}×${minHeight}`)
-  }
-
-  const ratio = width / height
-  if (ratio < minRatio || ratio > maxRatio) {
-    throw new Error(`${label}比例不符合要求，请上传接近 ${ratioLabel} 的图片`)
-  }
-}
-
 async function handleLogoUpload(options: any) {
   try {
-    await validateImage(options.file, 360, 120, 2.7, 3.3, '网站 Logo', '3:1')
-    formData.value.site_logo = await uploadImage(options.file)
+    await validateImageUpload(options.file, SITE_LOGO_RULE)
+    formData.value.site_logo = await uploadImage(options.file, SITE_LOGO_RULE.purpose)
     ElMessage.success('Logo上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -278,8 +275,8 @@ async function handleLogoUpload(options: any) {
 
 async function handleFaviconUpload(options: any) {
   try {
-    await validateImage(options.file, 256, 256, 0.95, 1.05, 'Title Logo', '1:1')
-    formData.value.site_favicon = await uploadImage(options.file)
+    await validateImageUpload(options.file, SITE_FAVICON_RULE)
+    formData.value.site_favicon = await uploadImage(options.file, SITE_FAVICON_RULE.purpose)
     ElMessage.success('Title Logo 上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -288,8 +285,11 @@ async function handleFaviconUpload(options: any) {
 
 async function handleProductsBannerUpload(options: any) {
   try {
-    await validateImage(options.file, 1920, 600, 3.1, 3.3, 'Shop背景图', '16:5')
-    formData.value.products_banner_image = await uploadImage(options.file)
+    await validateImageUpload(options.file, {
+      ...PAGE_BANNER_RULE,
+      fieldLabel: 'Shop背景图'
+    })
+    formData.value.products_banner_image = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
     ElMessage.success('Shop背景图上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -298,8 +298,11 @@ async function handleProductsBannerUpload(options: any) {
 
 async function handleAboutBannerUpload(options: any) {
   try {
-    await validateImage(options.file, 1920, 600, 3.1, 3.3, 'About背景图', '16:5')
-    formData.value.about_banner_image = await uploadImage(options.file)
+    await validateImageUpload(options.file, {
+      ...PAGE_BANNER_RULE,
+      fieldLabel: 'About背景图'
+    })
+    formData.value.about_banner_image = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
     ElMessage.success('About背景图上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
@@ -308,8 +311,11 @@ async function handleAboutBannerUpload(options: any) {
 
 async function handleContactBannerUpload(options: any) {
   try {
-    await validateImage(options.file, 1920, 600, 3.1, 3.3, 'Contact背景图', '16:5')
-    formData.value.contact_banner_image = await uploadImage(options.file)
+    await validateImageUpload(options.file, {
+      ...PAGE_BANNER_RULE,
+      fieldLabel: 'Contact背景图'
+    })
+    formData.value.contact_banner_image = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
     ElMessage.success('Contact背景图上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')

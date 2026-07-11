@@ -4,6 +4,11 @@ import type { ReactElement } from "react";
 import { portalAPI } from "@/lib/api";
 import { buildAboutPageMetadata } from "@/lib/seo";
 import { parseConfigJson } from "@/lib/site-config";
+import {
+  buildPortalImageSrcSet,
+  buildPortalImageUrl,
+  PORTAL_IMAGE_PRESETS,
+} from "@/lib/image-url";
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
@@ -112,6 +117,10 @@ export default async function AboutPage() {
   const safeCraftContent = craftContent ?? "";
   const safeCtaText = ctaText ?? "";
   const safeCtaButtonText = ctaButtonText ?? "";
+  const optimizedAboutBannerImage = buildPortalImageUrl(
+    safeBannerImage,
+    PORTAL_IMAGE_PRESETS.pageBanner
+  );
 
   return (
     <>
@@ -122,7 +131,7 @@ export default async function AboutPage() {
           style={{
             background: `
               linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
-              url(${safeBannerImage}) center/cover no-repeat
+              url(${optimizedAboutBannerImage}) center/cover no-repeat
             `,
           }}
         />
@@ -143,7 +152,17 @@ export default async function AboutPage() {
       <section className="py-30 px-6 md:px-15">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-20 max-w-[1200px] mx-auto items-center">
           <div className="aspect-[4/5] overflow-hidden">
-            <img src={safeStoryImage} alt={safeStoryTitle} className="w-full h-full object-cover" />
+            <img
+              src={buildPortalImageUrl(safeStoryImage, PORTAL_IMAGE_PRESETS.sectionImage)}
+              srcSet={buildPortalImageSrcSet(safeStoryImage, [720, 1200, 1600], {
+                quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
+              })}
+              sizes="(max-width: 768px) 100vw, 50vw"
+              alt={safeStoryTitle}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           <div>
             <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase mb-6 text-left">
@@ -176,7 +195,17 @@ export default async function AboutPage() {
       <section className="py-30 px-6 md:px-15">
         <div className="max-w-[1200px] mx-auto">
           <div className="aspect-[16/9] overflow-hidden mb-10">
-            <img src={safeCraftImage} alt={safeCraftTitle} className="w-full h-full object-cover" />
+            <img
+              src={buildPortalImageUrl(safeCraftImage, PORTAL_IMAGE_PRESETS.sectionImage)}
+              srcSet={buildPortalImageSrcSet(safeCraftImage, [720, 1200, 1600], {
+                quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
+              })}
+              sizes="100vw"
+              alt={safeCraftTitle}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           <div className="max-w-[600px] mx-auto text-center">
             <h2 className="text-2xl font-light tracking-[6px] uppercase mb-6">{safeCraftTitle}</h2>

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import SearchModal from "@/components/ui/SearchModal";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 interface HeaderProps {
   siteName: string;
@@ -62,7 +63,7 @@ export default function Header({ siteName, siteLogo = "" }: HeaderProps) {
         >
           {siteLogo ? (
             <Image
-              src={siteLogo}
+              src={buildPortalImageUrl(siteLogo, PORTAL_IMAGE_PRESETS.logo)}
               alt={siteName}
               width={120}
               height={24}

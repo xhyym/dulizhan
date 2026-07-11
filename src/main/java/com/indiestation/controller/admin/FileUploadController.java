@@ -3,6 +3,7 @@ package com.indiestation.controller.admin;
 import com.indiestation.common.Result;
 import com.indiestation.entity.vo.PresignedUrlVo;
 import com.indiestation.service.R2Service;
+import com.indiestation.support.upload.AdminUploadPurpose;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,8 +30,11 @@ public class FileUploadController {
     @GetMapping("/presigned")
     public Result<PresignedUrlVo> getPresignedUrl(
             @RequestParam String fileName,
-            @RequestParam String contentType) {
-        PresignedUrlVo vo = r2Service.generateUploadUrl(fileName, contentType);
+            @RequestParam String contentType,
+            @RequestParam(required = false) Long fileSize,
+            @RequestParam(required = false) String purpose) {
+        AdminUploadPurpose uploadPurpose = AdminUploadPurpose.fromCode(purpose).orElse(null);
+        PresignedUrlVo vo = r2Service.generateUploadUrl(fileName, contentType, fileSize, uploadPurpose);
         return Result.success(vo);
     }
 

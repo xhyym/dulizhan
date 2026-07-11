@@ -9,6 +9,7 @@ import ProductsFilterMobile from "@/components/product/ProductsFilterMobile";
 import ProductsPagination from "@/components/product/ProductsPagination";
 import { buildProductsPageMetadata } from "@/lib/seo";
 import { findCategoryName } from "@/lib/site-config";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 export async function generateMetadata({
   searchParams,
@@ -65,17 +66,18 @@ export default async function ProductsPage({
     size: 12,
     total: 0,
   };
+  const pageBannerContent = await PageBanner({
+    title: "Our Collection",
+    imageKey: "products_banner_image",
+    breadcrumbs: [
+      { label: "Home", href: "/" },
+      { label: "Shop" },
+    ],
+  });
 
   return (
     <>
-      <PageBanner
-        title="Our Collection"
-        imageKey="products_banner_image"
-        breadcrumbs={[
-          { label: "Home", href: "/" },
-          { label: "Shop" },
-        ]}
-      />
+      {pageBannerContent}
 
       {/* Content */}
       <section className="py-10 md:py-15 px-4 md:px-15">
@@ -176,7 +178,7 @@ function ProductCard({ product }: { product: Product }) {
     <Link href={`/products/${product.id}`} className="group cursor-pointer">
       <div className="relative aspect-[3/4] overflow-hidden bg-surface mb-4">
         <Image
-          src={product.mainImage}
+          src={buildPortalImageUrl(product.mainImage, PORTAL_IMAGE_PRESETS.productCard)}
           alt={product.name}
           fill
           unoptimized

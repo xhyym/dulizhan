@@ -41,6 +41,7 @@
 import { ElMessage } from 'element-plus'
 import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
 import { uploadImage } from '@/api/upload'
+import { validateImageUpload, type ImageUploadRule } from '@/utils/ui/image-upload'
 
 defineOptions({ name: 'SiteBanner' })
 
@@ -53,14 +54,17 @@ interface Banner {
   link: string
 }
 
-interface ImageSize {
-  width: number
-  height: number
-}
-
 const banners = ref<Banner[]>([])
-const BANNER_MIN_RATIO = 1.72
-const BANNER_MAX_RATIO = 1.83
+const HOME_BANNER_RULE: ImageUploadRule = {
+  purpose: 'home_banner',
+  fieldLabel: '轮播图',
+  minWidth: 1600,
+  minHeight: 900,
+  ratioLabel: '16:9',
+  minRatio: 1.72,
+  maxRatio: 1.83,
+  maxSizeInBytes: 10 * 1024 * 1024
+}
 
 async function loadData() {
   loading.value = true
@@ -84,43 +88,11 @@ function addBanner() {
 
 async function handleBannerUpload(options: any, index: number) {
   try {
-    await validateBannerImageRatio(options.file)
-    banners.value[index].image = await uploadImage(options.file)
+    await validateImageUpload(options.file, HOME_BANNER_RULE)
+    banners.value[index].image = await uploadImage(options.file, HOME_BANNER_RULE.purpose)
     ElMessage.success('上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
-  }
-}
-
-function readImageSize(file: File): Promise<ImageSize> {
-  return new Promise((resolve, reject) => {
-    const imageUrl = URL.createObjectURL(file)
-    const image = new Image()
-
-    image.onload = () => {
-      const imageSize = { width: image.width, height: image.height }
-      URL.revokeObjectURL(imageUrl)
-      resolve(imageSize)
-    }
-
-    image.onerror = () => {
-      URL.revokeObjectURL(imageUrl)
-      reject(new Error('图片解析失败，请更换文件后重试'))
-    }
-
-    image.src = imageUrl
-  })
-}
-
-async function validateBannerImageRatio(file: File) {
-  const { width, height } = await readImageSize(file)
-  if (width <= 0 || height <= 0) {
-    throw new Error('轮播图尺寸无效，请重新选择图片')
-  }
-
-  const ratio = width / height
-  if (ratio < BANNER_MIN_RATIO || ratio > BANNER_MAX_RATIO) {
-    throw new Error('轮播图比例不符合要求，请上传接近 16:9 的横版图片')
   }
 }
 

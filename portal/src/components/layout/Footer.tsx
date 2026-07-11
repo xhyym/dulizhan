@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 export default async function Footer() {
   const siteConfig = await portalAPI
@@ -61,7 +62,7 @@ export default async function Footer() {
     socialLinks = {};
   }
 
-  const activeSocialLinks = Object.entries(socialLinks).filter(([_key, url]) =>
+  const activeSocialLinks = Object.entries(socialLinks).filter(([, url]) =>
     Boolean(url?.trim())
   );
 
@@ -82,7 +83,7 @@ export default async function Footer() {
             <div className="flex items-center gap-3 mb-4">
               {siteLogo ? (
                 <Image
-                  src={siteLogo}
+                  src={buildPortalImageUrl(siteLogo, PORTAL_IMAGE_PRESETS.logo)}
                   alt={siteTitle}
                   width={120}
                   height={20}

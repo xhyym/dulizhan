@@ -271,6 +271,7 @@ import {
   fetchUpdateProduct
 } from '@/api/product'
 import { deleteImage, uploadImage } from '@/api/upload'
+import { validateImageUpload, type ImageUploadRule } from '@/utils/ui/image-upload'
 
 defineOptions({ name: 'ProductList' })
 
@@ -289,18 +290,6 @@ interface ProductFormData {
   skus: Api.Product.SkuItem[]
   status: number
   sort: number
-}
-
-interface ImageSize {
-  width: number
-  height: number
-}
-
-interface ImageRatioRule {
-  fieldLabel: string
-  ratioLabel: string
-  minRatio: number
-  maxRatio: number
 }
 
 function formatDateTime(dateTime?: string) {
@@ -325,25 +314,37 @@ const searchForm = ref({
 })
 const pagination = ref({ current: 1, size: 10, total: 0 })
 
-const PRODUCT_MAIN_IMAGE_RULE: ImageRatioRule = {
+const PRODUCT_MAIN_IMAGE_RULE: ImageUploadRule = {
+  purpose: 'product_gallery',
   fieldLabel: '商品主图/副图',
+  minWidth: 600,
+  minHeight: 800,
   ratioLabel: '3:4',
   minRatio: 0.72,
-  maxRatio: 0.78
+  maxRatio: 0.78,
+  maxSizeInBytes: 8 * 1024 * 1024
 }
 
-const PRODUCT_POSTER_IMAGE_RULE: ImageRatioRule = {
+const PRODUCT_POSTER_IMAGE_RULE: ImageUploadRule = {
+  purpose: 'product_poster',
   fieldLabel: '海报图',
+  minWidth: 1920,
+  minHeight: 500,
   ratioLabel: '1920:500',
   minRatio: 3.7,
-  maxRatio: 3.98
+  maxRatio: 3.98,
+  maxSizeInBytes: 10 * 1024 * 1024
 }
 
-const PRODUCT_DETAIL_IMAGE_RULE: ImageRatioRule = {
+const PRODUCT_DETAIL_IMAGE_RULE: ImageUploadRule = {
+  purpose: 'product_detail',
   fieldLabel: '详情图',
+  minWidth: 900,
+  minHeight: 1200,
   ratioLabel: '3:4',
   minRatio: 0.72,
-  maxRatio: 0.78
+  maxRatio: 0.78,
+  maxSizeInBytes: 10 * 1024 * 1024
 }
 
 function createDefaultSku(): Api.Product.SkuItem {
@@ -563,8 +564,8 @@ function resetForm() {
 // 上传图片
 async function handleImageUpload(options: any) {
   try {
-    await validateImageRatio(options.file, PRODUCT_MAIN_IMAGE_RULE)
-    const url = await uploadImage(options.file)
+    await validateImageUpload(options.file, PRODUCT_MAIN_IMAGE_RULE)
+    const url = await uploadImage(options.file, PRODUCT_MAIN_IMAGE_RULE.purpose)
     uploadedImageUrls.value.push(url)
     if (!formData.value.mainImage) {
       formData.value.mainImage = url
@@ -580,9 +581,9 @@ async function handleImageUpload(options: any) {
 // 上传海报图/详情图
 async function handleSpecialImageUpload(options: any, field: 'posterImage' | 'detailImage') {
   try {
-    const ratioRule = field === 'posterImage' ? PRODUCT_POSTER_IMAGE_RULE : PRODUCT_DETAIL_IMAGE_RULE
-    await validateImageRatio(options.file, ratioRule)
-    const url = await uploadImage(options.file)
+    const imageRule = field === 'posterImage' ? PRODUCT_POSTER_IMAGE_RULE : PRODUCT_DETAIL_IMAGE_RULE
+    await validateImageUpload(options.file, imageRule)
+    const url = await uploadImage(options.file, imageRule.purpose)
     uploadedImageUrls.value.push(url)
     formData.value[field] = url
     ElMessage.success('图片上传成功')
@@ -625,44 +626,6 @@ async function clearSpecialImage(field: 'posterImage' | 'detailImage') {
   const fileUrl = formData.value[field]
   await deleteUploadedImageIfNeeded(fileUrl)
   formData.value[field] = ''
-}
-
-/**
- * 读取图片真实尺寸，用于上传前做比例校验。
- */
-function readImageSize(file: File): Promise<ImageSize> {
-  return new Promise((resolve, reject) => {
-    const imageUrl = URL.createObjectURL(file)
-    const image = new Image()
-
-    image.onload = () => {
-      const imageSize = { width: image.width, height: image.height }
-      URL.revokeObjectURL(imageUrl)
-      resolve(imageSize)
-    }
-
-    image.onerror = () => {
-      URL.revokeObjectURL(imageUrl)
-      reject(new Error('图片解析失败，请更换文件后重试'))
-    }
-
-    image.src = imageUrl
-  })
-}
-
-/**
- * 统一校验商品图片比例，防止不规整图片影响前台展示。
- */
-async function validateImageRatio(file: File, rule: ImageRatioRule) {
-  const { width, height } = await readImageSize(file)
-  if (width <= 0 || height <= 0) {
-    throw new Error(`${rule.fieldLabel}尺寸无效，请重新选择图片`)
-  }
-
-  const ratio = width / height
-  if (ratio < rule.minRatio || ratio > rule.maxRatio) {
-    throw new Error(`${rule.fieldLabel}比例不符合要求，请上传接近 ${rule.ratioLabel} 的图片`)
-  }
 }
 
 // 提交表单

@@ -1,6 +1,7 @@
 package com.indiestation.service;
 
 import com.indiestation.entity.vo.PresignedUrlVo;
+import com.indiestation.support.upload.AdminUploadPurpose;
 
 /**
  * R2 文件存储服务
@@ -17,6 +18,17 @@ public interface R2Service {
      * @return 预签名信息
      */
     PresignedUrlVo generateUploadUrl(String fileName, String contentType);
+
+    /**
+     * 生成带上传用途校验的预签名上传 URL。
+     *
+     * @param fileName    原始文件名
+     * @param contentType MIME 类型 (如 image/jpeg)
+     * @param fileSize    文件大小（字节）
+     * @param purpose     上传用途
+     * @return 预签名信息
+     */
+    PresignedUrlVo generateUploadUrl(String fileName, String contentType, Long fileSize, AdminUploadPurpose purpose);
 
     /**
      * 根据公开访问 URL 删除 R2 对象。

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuth, useAuthFetch } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 interface InquiryItem {
   id: number;
@@ -234,9 +235,11 @@ export default function OrderDetailPage() {
             <div key={item.id} className="flex gap-4 pb-4 border-b border-border">
               <div className="w-20 h-20 overflow-hidden bg-surface flex-shrink-0">
                 <img
-                  src={item.productImage}
+                  src={buildPortalImageUrl(item.productImage, PORTAL_IMAGE_PRESETS.cartThumb)}
                   alt={item.productName}
                   className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
               <div className="flex-1">

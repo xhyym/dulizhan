@@ -3,6 +3,7 @@ import Link from "next/link";
 import { portalAPI } from "@/lib/api";
 import { buildContactPageMetadata } from "@/lib/seo";
 import { parseConfigJson } from "@/lib/site-config";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
@@ -47,10 +48,14 @@ export default async function ContactPage() {
   }
 
   const socialLinks = parseConfigJson<Record<string, string>>(siteConfig.social_links, {});
-  const activeSocialLinks = Object.entries(socialLinks).filter(([_key, url]) =>
+  const activeSocialLinks = Object.entries(socialLinks).filter(([, url]) =>
     Boolean(url?.trim())
   );
   const contactBannerImage = siteConfig.contact_banner_image?.trim();
+  const optimizedContactBannerImage = buildPortalImageUrl(
+    contactBannerImage,
+    PORTAL_IMAGE_PRESETS.pageBanner
+  );
 
   const socialLabels: Record<string, string> = {
     facebook: "Facebook",
@@ -71,7 +76,7 @@ export default async function ContactPage() {
             style={{
               background: `
                 linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
-                url(${contactBannerImage}) center/cover no-repeat
+                url(${optimizedContactBannerImage}) center/cover no-repeat
               `,
             }}
           />

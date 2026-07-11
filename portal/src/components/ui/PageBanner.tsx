@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
 import { resolvePageBannerImage } from "@/lib/site-config";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 interface Breadcrumb {
   label: string;
@@ -38,6 +39,10 @@ export default async function PageBanner({
       </section>
     );
   }
+  const optimizedBannerImage = buildPortalImageUrl(
+    bannerImage,
+    PORTAL_IMAGE_PRESETS.pageBanner
+  );
 
   return (
     <section className="relative h-[200px] md:h-[250px] flex items-center justify-center">
@@ -46,7 +51,7 @@ export default async function PageBanner({
         style={{
           background: `
             linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
-            url(${bannerImage}) center/cover no-repeat
+            url(${optimizedBannerImage}) center/cover no-repeat
           `,
         }}
       />

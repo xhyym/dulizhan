@@ -191,6 +191,7 @@ import { ElMessage } from 'element-plus'
 import { Plus, CircleClose } from '@element-plus/icons-vue'
 import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
 import { uploadImage } from '@/api/upload'
+import { validateImageUpload } from '@/utils/ui/image-upload'
 
 defineOptions({ name: 'SiteAbout' })
 
@@ -208,12 +209,8 @@ interface StatsItem {
   label: string
 }
 
-interface ImageSize {
-  width: number
-  height: number
-}
-
 interface ImageRule {
+  purpose: 'site_page_banner' | 'about_story' | 'about_craft'
   fieldLabel: string
   minWidth: number
   minHeight: number
@@ -224,6 +221,7 @@ interface ImageRule {
 
 const ABOUT_IMAGE_RULES: Record<'bannerImage' | 'storyImage' | 'craftImage', ImageRule> = {
   bannerImage: {
+    purpose: 'site_page_banner',
     fieldLabel: '顶部Banner图片',
     minWidth: 1920,
     minHeight: 600,
@@ -232,6 +230,7 @@ const ABOUT_IMAGE_RULES: Record<'bannerImage' | 'storyImage' | 'craftImage', Ima
     maxRatio: 3.3
   },
   storyImage: {
+    purpose: 'about_story',
     fieldLabel: '品牌故事图片',
     minWidth: 800,
     minHeight: 1000,
@@ -240,6 +239,7 @@ const ABOUT_IMAGE_RULES: Record<'bannerImage' | 'storyImage' | 'craftImage', Ima
     maxRatio: 0.84
   },
   craftImage: {
+    purpose: 'about_craft',
     fieldLabel: '工艺展示图片',
     minWidth: 1200,
     minHeight: 800,
@@ -290,8 +290,12 @@ async function loadData() {
 
 async function handleImageUpload(options: any, field: 'bannerImage' | 'storyImage' | 'craftImage') {
   try {
-    await validateAboutImage(options.file, ABOUT_IMAGE_RULES[field])
-    const url = await uploadImage(options.file)
+    const imageRule = ABOUT_IMAGE_RULES[field]
+    await validateImageUpload(options.file, {
+      ...imageRule,
+      maxSizeInBytes: imageRule.purpose === 'about_story' ? 6 * 1024 * 1024 : 8 * 1024 * 1024
+    })
+    const url = await uploadImage(options.file, imageRule.purpose)
     formData.value[field] = url
     ElMessage.success('图片上传成功')
   } catch (e: any) {
@@ -308,44 +312,6 @@ async function handleSave() {
     ElMessage.success('保存成功')
   } finally {
     saving.value = false
-  }
-}
-
-/**
- * 读取图片真实尺寸，用于上传前做分辨率与比例校验。
- */
-function readImageSize(file: File): Promise<ImageSize> {
-  return new Promise((resolve, reject) => {
-    const imageUrl = URL.createObjectURL(file)
-    const image = new Image()
-
-    image.onload = () => {
-      const imageSize = { width: image.width, height: image.height }
-      URL.revokeObjectURL(imageUrl)
-      resolve(imageSize)
-    }
-
-    image.onerror = () => {
-      URL.revokeObjectURL(imageUrl)
-      reject(new Error('图片解析失败，请更换文件后重试'))
-    }
-
-    image.src = imageUrl
-  })
-}
-
-/**
- * 关于我们页面各模块图片布局固定，上传前直接拦截不合规尺寸，避免前台展示变形。
- */
-async function validateAboutImage(file: File, rule: ImageRule) {
-  const { width, height } = await readImageSize(file)
-  if (width < rule.minWidth || height < rule.minHeight) {
-    throw new Error(`${rule.fieldLabel}分辨率不能低于 ${rule.minWidth}×${rule.minHeight}`)
-  }
-
-  const ratio = width / height
-  if (ratio < rule.minRatio || ratio > rule.maxRatio) {
-    throw new Error(`${rule.fieldLabel}比例不符合要求，请上传接近 ${rule.ratioLabel} 的图片`)
   }
 }
 

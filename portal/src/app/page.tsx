@@ -5,6 +5,11 @@ import HeroCarousel from "@/components/ui/HeroCarousel";
 import CategoryMarquee from "@/components/ui/CategoryMarquee";
 import { buildHomeMetadata } from "@/lib/seo";
 import { parseBannerImages, parseConfigJson } from "@/lib/site-config";
+import {
+  buildPortalImageSrcSet,
+  buildPortalImageUrl,
+  PORTAL_IMAGE_PRESETS,
+} from "@/lib/image-url";
 
 function requireConfig(config: Record<string, string>, key: string): string {
   const val = config[key];
@@ -86,6 +91,9 @@ export default async function HomePage() {
   if (!bannerImages.length) {
     throw new Error("站点配置错误: banner_images 数组为空，请在后台添加轮播图");
   }
+  const optimizedBannerImages = bannerImages.map((image) =>
+    buildPortalImageUrl(image, PORTAL_IMAGE_PRESETS.heroBanner)
+  );
 
   // 解析首页文案
   const heroTagline = requireConfig(siteConfig, "hero_tagline");
@@ -108,7 +116,7 @@ export default async function HomePage() {
   return (
     <>
       <HeroCarousel
-        images={bannerImages}
+        images={optimizedBannerImages}
         tagline={heroTagline}
         title={heroTitle}
         subtitle={heroSubtitle}
@@ -145,9 +153,15 @@ export default async function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 max-w-[1200px] mx-auto items-center">
           <div className="aspect-[4/5] overflow-hidden">
             <img
-              src={storyImage}
+              src={buildPortalImageUrl(storyImage, PORTAL_IMAGE_PRESETS.sectionImage)}
+              srcSet={buildPortalImageSrcSet(storyImage, [720, 1200, 1600], {
+                quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
+              })}
+              sizes="(max-width: 768px) 100vw, 50vw"
               alt={storyTitle}
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           </div>
           <div>
@@ -175,9 +189,15 @@ function ProductCard({ product }: { product: Product }) {
     <Link href={`/products/${product.id}`} className="group cursor-pointer">
       <div className="relative aspect-[3/4] overflow-hidden bg-surface mb-4">
         <img
-          src={product.mainImage}
+          src={buildPortalImageUrl(product.mainImage, PORTAL_IMAGE_PRESETS.productCard)}
+          srcSet={buildPortalImageSrcSet(product.mainImage, [360, 720, 1080], {
+            quality: PORTAL_IMAGE_PRESETS.productCard.quality,
+          })}
+          sizes="(max-width: 768px) 50vw, 25vw"
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-600 group-hover:scale-105"
+          loading="lazy"
+          decoding="async"
         />
       </div>
       <p className="text-[15px] font-normal tracking-wider mb-2 text-foreground">

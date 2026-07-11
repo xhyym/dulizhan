@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth, useAuthFetch } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 
 interface AddToCartButtonProps {
@@ -40,8 +40,8 @@ export default function AddToCartButton({
       await addItem(productId, selectedSku, quantity);
       setMessage("Added to cart!");
       setTimeout(() => setMessage(""), 2000);
-    } catch (err: any) {
-      setMessage(err.message || "Failed to add to cart");
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "Failed to add to cart");
     } finally {
       setLoading(false);
     }

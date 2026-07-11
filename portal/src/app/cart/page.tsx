@@ -7,6 +7,7 @@ import { useAuth, useAuthFetch } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import ClientBanner from "@/components/ui/ClientBanner";
 import MinimalDatePicker from "@/components/ui/MinimalDatePicker";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 function getTodayDateString(): string {
   const currentDate = new Date();
@@ -175,9 +176,11 @@ export default function CartPage() {
                     >
                       <div className="w-24 h-24 overflow-hidden bg-surface flex-shrink-0">
                         <img
-                          src={item.mainImage}
+                          src={buildPortalImageUrl(item.mainImage, PORTAL_IMAGE_PRESETS.cartThumb)}
                           alt={item.productName}
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       </div>
                       <div className="flex-1">

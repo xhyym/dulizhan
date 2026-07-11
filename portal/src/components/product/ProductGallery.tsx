@@ -5,6 +5,11 @@ import {
   buildGalleryImages,
   createMagnifierBackgroundPosition,
 } from "@/lib/product-gallery";
+import {
+  buildPortalImageSrcSet,
+  buildPortalImageUrl,
+  PORTAL_IMAGE_PRESETS,
+} from "@/lib/image-url";
 
 interface ProductGalleryProps {
   productName: string;
@@ -44,6 +49,14 @@ export default function ProductGallery({
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
   const selectedImage = galleryImages[selectedIndex] ?? mainImage;
+  const selectedMainImage = buildPortalImageUrl(
+    selectedImage,
+    PORTAL_IMAGE_PRESETS.productMain
+  );
+  const selectedZoomImage = buildPortalImageUrl(
+    selectedImage,
+    PORTAL_IMAGE_PRESETS.productZoom
+  );
 
   const handlePointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = imageContainerRef.current?.getBoundingClientRect();
@@ -120,9 +133,15 @@ export default function ProductGallery({
               onClick={() => setPreviewOpen(true)}
             >
               <img
-                src={selectedImage}
+                src={selectedMainImage}
+                srcSet={buildPortalImageSrcSet(selectedImage, [480, 960, 1200], {
+                  quality: PORTAL_IMAGE_PRESETS.productMain.quality,
+                })}
+                sizes="(max-width: 768px) 100vw, 50vw"
                 alt={productName}
                 className="h-full w-full object-cover"
+                loading="eager"
+                decoding="async"
               />
 
               <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/6" />
@@ -147,9 +166,11 @@ export default function ProductGallery({
                   }`}
                 >
                   <img
-                    src={image}
+                    src={buildPortalImageUrl(image, PORTAL_IMAGE_PRESETS.thumbnail)}
                     alt={`${productName} preview ${index + 1}`}
                     className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </button>
               ))}
@@ -171,9 +192,11 @@ export default function ProductGallery({
                 }`}
               >
                 <img
-                  src={image}
+                  src={buildPortalImageUrl(image, PORTAL_IMAGE_PRESETS.thumbnail)}
                   alt={`${productName} preview ${index + 1}`}
                   className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               </button>
             ))}
@@ -186,7 +209,7 @@ export default function ProductGallery({
           <div
             className="h-full w-full bg-no-repeat"
             style={{
-              backgroundImage: `url(${selectedImage})`,
+              backgroundImage: `url(${selectedZoomImage})`,
               backgroundPosition: pointerState.backgroundPosition,
               backgroundSize: "220%",
             }}
@@ -267,9 +290,15 @@ export default function ProductGallery({
             onClick={(event) => event.stopPropagation()}
           >
             <img
-              src={selectedImage}
+              src={buildPortalImageUrl(selectedImage, PORTAL_IMAGE_PRESETS.productDetail)}
+              srcSet={buildPortalImageSrcSet(selectedImage, [720, 1200, 1800], {
+                quality: PORTAL_IMAGE_PRESETS.productDetail.quality,
+              })}
+              sizes="90vw"
               alt={`${productName} preview`}
               className="max-h-[90vh] max-w-full object-contain"
+              loading="eager"
+              decoding="async"
             />
           </div>
         </div>

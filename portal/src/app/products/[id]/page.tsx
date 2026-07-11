@@ -6,6 +6,11 @@ import AddToCartButton from "./AddToCartButton";
 import { buildProductDetailMetadata } from "@/lib/seo";
 import { findCategoryName } from "@/lib/site-config";
 import ProductGallery from "@/components/product/ProductGallery";
+import {
+  buildPortalImageSrcSet,
+  buildPortalImageUrl,
+  PORTAL_IMAGE_PRESETS,
+} from "@/lib/image-url";
 
 export async function generateMetadata({
   params,
@@ -44,6 +49,9 @@ export default async function ProductDetailPage({
   if (!product) {
     notFound();
   }
+  const optimizedPosterImage = product.posterImage
+    ? buildPortalImageUrl(product.posterImage, PORTAL_IMAGE_PRESETS.pageBanner)
+    : "";
 
   return (
     <>
@@ -55,7 +63,7 @@ export default async function ProductDetailPage({
             style={{
               background: `
                 linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.4)),
-                url(${product.posterImage}) center/cover no-repeat
+                url(${optimizedPosterImage}) center/cover no-repeat
               `,
             }}
           />
@@ -118,9 +126,15 @@ export default async function ProductDetailPage({
             <div className="max-w-[800px] mx-auto">
               <div className="overflow-hidden bg-surface">
                 <img
-                  src={product.detailImage}
+                  src={buildPortalImageUrl(product.detailImage, PORTAL_IMAGE_PRESETS.productDetail)}
+                  srcSet={buildPortalImageSrcSet(product.detailImage, [720, 1200, 1800], {
+                    quality: PORTAL_IMAGE_PRESETS.productDetail.quality,
+                  })}
+                  sizes="(max-width: 1200px) 100vw, 800px"
                   alt={`${product.name} details`}
                   className="w-full h-auto"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             </div>

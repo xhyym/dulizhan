@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { parseBannerImages } from "@/lib/site-config";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -59,6 +60,10 @@ export default function ClientBanner({
       </section>
     );
   }
+  const optimizedBannerImage = buildPortalImageUrl(
+    bannerImage,
+    PORTAL_IMAGE_PRESETS.pageBanner
+  );
 
   return (
     <section className="relative h-[200px] md:h-[250px] flex items-center justify-center">
@@ -67,7 +72,7 @@ export default function ClientBanner({
         style={{
           background: `
             linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
-            url(${bannerImage}) center/cover no-repeat
+            url(${optimizedBannerImage}) center/cover no-repeat
           `,
         }}
       />

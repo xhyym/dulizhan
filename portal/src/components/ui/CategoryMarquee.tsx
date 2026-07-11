@@ -9,6 +9,7 @@ import {
   MARQUEE_SPEED_PX_PER_SECOND,
   normalizeMarqueeOffset,
 } from "@/lib/category-marquee-motion";
+import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 export default function CategoryMarquee({ categories }: { categories: Category[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -149,7 +150,7 @@ function CategoryCard({ category }: { category: Category }) {
       className="flex-shrink-0 w-[220px] h-[280px] md:w-[300px] md:h-[400px] mx-2 md:mx-3 relative overflow-hidden group/card cursor-pointer rounded transition-transform duration-300 hover:scale-[1.03]"
     >
       <Image
-        src={category.image}
+        src={buildPortalImageUrl(category.image, PORTAL_IMAGE_PRESETS.categoryCard)}
         alt={category.name}
         fill
         unoptimized

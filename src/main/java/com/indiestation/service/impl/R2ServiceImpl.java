@@ -4,6 +4,7 @@ import com.indiestation.config.R2Config;
 import com.indiestation.entity.vo.PresignedUrlVo;
 import com.indiestation.exception.BusinessException;
 import com.indiestation.service.R2Service;
+import com.indiestation.support.upload.AdminUploadPurpose;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -44,6 +45,11 @@ public class R2ServiceImpl implements R2Service {
 
     @Override
     public PresignedUrlVo generateUploadUrl(String fileName, String contentType) {
+        return generateUploadUrl(fileName, contentType, null, null);
+    }
+
+    @Override
+    public PresignedUrlVo generateUploadUrl(String fileName, String contentType, Long fileSize, AdminUploadPurpose purpose) {
         S3Presigner s3Presigner = s3PresignerProvider.getIfAvailable();
         if (s3Presigner == null || !r2Config.isConfigured()) {
             log.warn("R2 文件存储未配置，无法生成预签名上传地址: fileName={}, contentType={}", fileName, contentType);
@@ -55,8 +61,10 @@ public class R2ServiceImpl implements R2Service {
             throw new BusinessException("不支持的文件类型: " + contentType);
         }
 
-        // 生成对象 Key: images/2026/06/22/{uuid}.jpg
-        String key = generateKey(fileName, contentType);
+        validateUploadRequest(fileName, contentType, fileSize, purpose);
+
+        // 生成对象 Key: images/product-gallery/2026/06/22/{uuid}.jpg
+        String key = generateKey(contentType, purpose);
 
         // 构建 PutObjectRequest
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -82,7 +90,8 @@ public class R2ServiceImpl implements R2Service {
         vo.setFileUrl(fileUrl);
         vo.setKey(key);
 
-        log.info("生成预签名URL: key={}, fileUrl={}", key, fileUrl);
+        log.info("生成预签名URL: key={}, fileUrl={}, purpose={}, fileSize={}",
+                key, fileUrl, purpose != null ? purpose.getCode() : "general", fileSize);
         return vo;
     }
 
@@ -117,13 +126,14 @@ public class R2ServiceImpl implements R2Service {
 
     /**
      * 生成 R2 对象 Key
-     * 格式: images/2026/06/22/{uuid}.jpg
+     * 格式: images/product-gallery/2026/06/22/{uuid}.jpg
      */
-    private String generateKey(String fileName, String contentType) {
+    private String generateKey(String contentType, AdminUploadPurpose purpose) {
         String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
         String uuid = UUID.randomUUID().toString().replace("-", "");
         String extension = getExtensionFromContentType(contentType);
-        return String.format("images/%s/%s.%s", datePath, uuid, extension);
+        String directory = purpose != null ? purpose.getDirectory() : "general";
+        return String.format("images/%s/%s/%s.%s", directory, datePath, uuid, extension);
     }
 
     /**
@@ -151,6 +161,33 @@ public class R2ServiceImpl implements R2Service {
         }
         // 也允许 PDF
         return "application/pdf".equals(lower);
+    }
+
+    /**
+     * 后端兜底校验上传请求，避免有人绕过前端直接申请超大图片预签名地址。
+     */
+    private void validateUploadRequest(String fileName, String contentType, Long fileSize, AdminUploadPurpose purpose) {
+        if (!StringUtils.hasText(fileName)) {
+            throw new BusinessException("文件名不能为空");
+        }
+
+        if (fileName.length() > 200) {
+            throw new BusinessException("文件名过长，请缩短后重试");
+        }
+
+        if (purpose == null) {
+            return;
+        }
+
+        if (!contentType.toLowerCase().startsWith("image/")) {
+            throw new BusinessException(purpose.getLabel() + "仅支持图片文件");
+        }
+
+        if (fileSize != null && fileSize > purpose.getMaxFileSize()) {
+            throw new BusinessException(String.format("%s大小不能超过 %dMB",
+                    purpose.getLabel(),
+                    purpose.getMaxFileSize() / 1024 / 1024));
+        }
     }
 
     /**
