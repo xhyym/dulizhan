@@ -104,6 +104,21 @@ function serializeTransformOptions(options: PortalImageTransformOptions): string
   return segments.join(",");
 }
 
+function encodeSourceForCloudflareImage(rawUrl: string): string {
+  if (rawUrl.startsWith("/")) {
+    const normalizedPath = rawUrl.replace(/^\/+/, "");
+    if (!normalizedPath.includes("?") && !normalizedPath.includes("#")) {
+      return normalizedPath;
+    }
+
+    return encodeURIComponent(normalizedPath);
+  }
+
+  // 远程图片地址一旦包含查询参数，必须整体编码；否则 `?w=...` 会被当成当前请求的 query，
+  // Cloudflare 无法正确解析源图地址，线上会直接返回 404。
+  return encodeURIComponent(rawUrl);
+}
+
 /**
  * 生产环境下优先拼接 Cloudflare 图片压缩地址；本地开发或未配置站点域名时直接回退原图。
  */
@@ -121,9 +136,7 @@ export function buildPortalImageUrl(
     return trimmedUrl;
   }
 
-  const encodedSource = trimmedUrl.startsWith("/")
-    ? trimmedUrl.replace(/^\/+/, "")
-    : encodeURI(trimmedUrl);
+  const encodedSource = encodeSourceForCloudflareImage(trimmedUrl);
 
   return `${proxyOrigin}/cdn-cgi/image/${serializeTransformOptions(options)}/${encodedSource}`;
 }
