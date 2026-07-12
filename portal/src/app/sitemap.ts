@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { portalAPI, type Product } from "@/lib/api";
-import { buildAbsoluteUrl } from "@/lib/site-config";
+import { buildAbsoluteUrl, normalizeSiteConfig } from "@/lib/site-config";
 import { getSitemapBaseEntries, isSitemapEnabled } from "@/lib/seo";
 
 async function getAllProducts(): Promise<Product[]> {
@@ -27,9 +27,10 @@ async function getAllProducts(): Promise<Product[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
+  const siteConfigResponse = await portalAPI.getSiteConfig().catch(() => null);
+  const siteConfig = normalizeSiteConfig(siteConfigResponse);
 
-  if (!siteConfig || !isSitemapEnabled(siteConfig)) {
+  if (!isSitemapEnabled(siteConfig)) {
     return [];
   }
 

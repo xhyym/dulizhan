@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
-import { resolvePageBannerImage } from "@/lib/site-config";
+import { normalizeSiteConfig, resolvePageBannerImage } from "@/lib/site-config";
 import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 interface Breadcrumb {
@@ -17,28 +17,11 @@ export default async function PageBanner({
   breadcrumbs?: Breadcrumb[];
   imageKey?: string;
 }) {
-  const siteConfig = await portalAPI
+  const siteConfigResponse = await portalAPI
     .getSiteConfig()
     .catch(() => null);
-
-  if (!siteConfig) {
-    return (
-      <section className="relative h-[200px] md:h-[250px] flex items-center justify-center bg-red-50">
-        <p className="text-red-500 text-sm">站点配置加载失败，请检查后台设置</p>
-      </section>
-    );
-  }
-
+  const siteConfig = normalizeSiteConfig(siteConfigResponse);
   const bannerImage = resolvePageBannerImage(siteConfig, imageKey);
-  if (!bannerImage) {
-    return (
-      <section className="relative h-[200px] md:h-[250px] flex items-center justify-center bg-red-50">
-        <p className="text-red-500 text-sm">
-          站点配置缺失: {imageKey || "banner_images"}，请在后台补充页面背景图
-        </p>
-      </section>
-    );
-  }
   const optimizedBannerImage = buildPortalImageUrl(
     bannerImage,
     PORTAL_IMAGE_PRESETS.pageBanner
@@ -46,15 +29,19 @@ export default async function PageBanner({
 
   return (
     <section className="relative h-[200px] md:h-[250px] flex items-center justify-center">
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `
-            linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
-            url(${optimizedBannerImage}) center/cover no-repeat
-          `,
-        }}
-      />
+      {bannerImage ? (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `
+              linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
+              url(${optimizedBannerImage}) center/cover no-repeat
+            `,
+          }}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-[#1a1a1a]" />
+      )}
       <div className="relative z-10 text-center text-white">
         {breadcrumbs && breadcrumbs.length > 0 && (
           <p className="text-sm font-light tracking-wider mb-2">

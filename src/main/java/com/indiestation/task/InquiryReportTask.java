@@ -46,9 +46,15 @@ public class InquiryReportTask {
             );
 
             String dateStr = yesterday.format(DateTimeFormatter.ISO_LOCAL_DATE);
-            emailService.sendDailyInquiryReport(dateStr, count.intValue());
+            long inquiryCount = count == null ? 0L : count;
+            if (inquiryCount <= 0) {
+                log.info("昨日无新增询盘，跳过每日询盘汇总邮件发送，日期：{}", dateStr);
+                return;
+            }
 
-            log.info("每日询盘汇总任务完成，日期：{}，新增询盘：{} 条", dateStr, count);
+            emailService.sendDailyInquiryReport(dateStr, Math.toIntExact(inquiryCount));
+
+            log.info("每日询盘汇总任务完成并已提交邮件发送，日期：{}，新增询盘：{} 条", dateStr, inquiryCount);
         } catch (Exception e) {
             log.error("每日询盘汇总任务失败", e);
         }

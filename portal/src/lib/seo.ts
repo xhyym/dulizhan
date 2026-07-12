@@ -325,7 +325,6 @@ export function buildRobotsMetadata(siteConfig: Record<string, string>): Metadat
     .filter(Boolean);
 
   const rules: Array<{ userAgent: string; allow: string[]; disallow: string[] }> = [];
-  const sitemaps: string[] = [];
   let currentRule: { userAgent: string; allow: string[]; disallow: string[] } | null = null;
 
   const pushCurrentRule = () => {
@@ -373,7 +372,8 @@ export function buildRobotsMetadata(siteConfig: Record<string, string>): Metadat
     }
 
     if (key === "sitemap") {
-      sitemaps.push(value.startsWith("http") ? value : buildAbsoluteUrl(value));
+      // 站点地图由 Next 自动生成，始终使用当前站点根域名，避免后台旧配置残留 localhost。
+      continue;
     }
   }
 
@@ -385,7 +385,7 @@ export function buildRobotsMetadata(siteConfig: Record<string, string>): Metadat
         userAgent: "*",
         allow: "/",
       },
-      sitemap: sitemaps.length > 0 ? sitemaps : [defaultSitemap],
+      sitemap: [defaultSitemap],
     };
   }
 
@@ -395,7 +395,7 @@ export function buildRobotsMetadata(siteConfig: Record<string, string>): Metadat
       allow: rule.allow.length > 0 ? rule.allow : undefined,
       disallow: rule.disallow.length > 0 ? rule.disallow : undefined,
     })),
-    sitemap: sitemaps.length > 0 ? sitemaps : [defaultSitemap],
+    sitemap: [defaultSitemap],
   };
 }
 

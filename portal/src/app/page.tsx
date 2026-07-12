@@ -4,18 +4,16 @@ import { portalAPI, Product, Category } from "@/lib/api";
 import HeroCarousel from "@/components/ui/HeroCarousel";
 import CategoryMarquee from "@/components/ui/CategoryMarquee";
 import { buildHomeMetadata } from "@/lib/seo";
-import { parseBannerImages, parseConfigJson } from "@/lib/site-config";
+import {
+  normalizeSiteConfig,
+  parseAboutUsConfig,
+  parseBannerImages,
+} from "@/lib/site-config";
 import {
   buildPortalImageSrcSet,
   buildPortalImageUrl,
   PORTAL_IMAGE_PRESETS,
 } from "@/lib/image-url";
-
-function requireConfig(config: Record<string, string>, key: string): string {
-  const val = config[key];
-  if (!val) throw new Error(`站点配置缺失: ${key}，请在后台系统设置中添加`);
-  return val;
-}
 
 function parseFeaturedCategoryIds(value: string | undefined): number[] {
   if (!value?.trim()) {
@@ -78,40 +76,24 @@ export default async function HomePage() {
     portalAPI.getSiteConfig().catch(() => null),
   ]);
 
-  if (!siteConfig) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-red-500 text-lg">站点配置加载失败，请检查后端服务是否正常</p>
-      </div>
-    );
-  }
+  const safeSiteConfig = normalizeSiteConfig(siteConfig);
 
-  // 解析 banner_images
-  const bannerImages = parseBannerImages(requireConfig(siteConfig, "banner_images"));
-  if (!bannerImages.length) {
-    throw new Error("站点配置错误: banner_images 数组为空，请在后台添加轮播图");
-  }
+  // 后台未配置轮播图时，HeroCarousel 使用纯色背景和默认文案继续展示。
+  const bannerImages = parseBannerImages(safeSiteConfig.banner_images);
   const optimizedBannerImages = bannerImages.map((image) =>
     buildPortalImageUrl(image, PORTAL_IMAGE_PRESETS.heroBanner)
   );
 
   // 解析首页文案
-  const heroTagline = requireConfig(siteConfig, "hero_tagline");
-  const heroTitle = requireConfig(siteConfig, "hero_title");
-  const heroSubtitle = requireConfig(siteConfig, "hero_subtitle");
-  const featuredCategories = resolveFeaturedCategories(categories, siteConfig);
+  const heroTagline = safeSiteConfig.hero_tagline;
+  const heroTitle = safeSiteConfig.hero_title;
+  const heroSubtitle = safeSiteConfig.hero_subtitle;
+  const featuredCategories = resolveFeaturedCategories(categories, safeSiteConfig);
 
-  // 解析 about_us 中的 Our Story
-  const aboutUs = parseConfigJson<Record<string, string | undefined>>(
-    requireConfig(siteConfig, "about_us"),
-    {}
-  );
+  const aboutUs = parseAboutUsConfig(safeSiteConfig.about_us);
   const storyImage = aboutUs.storyImage;
   const storyTitle = aboutUs.storyTitle;
   const storyContent = aboutUs.storyContent;
-  if (!storyImage || !storyTitle || !storyContent) {
-    throw new Error("站点配置错误: about_us 中缺少 storyImage/storyTitle/storyContent");
-  }
 
   return (
     <>
@@ -151,19 +133,23 @@ export default async function HomePage() {
       {/* Our Story */}
       <section className="py-20 md:py-30 px-4 md:px-15">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 max-w-[1200px] mx-auto items-center">
-          <div className="aspect-[4/5] overflow-hidden">
-            <img
-              src={buildPortalImageUrl(storyImage, PORTAL_IMAGE_PRESETS.sectionImage)}
-              srcSet={buildPortalImageSrcSet(storyImage, [720, 1200, 1600], {
-                quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
-              })}
-              sizes="(max-width: 768px) 100vw, 50vw"
-              alt={storyTitle}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
+          {storyImage ? (
+            <div className="aspect-[4/5] overflow-hidden">
+              <img
+                src={buildPortalImageUrl(storyImage, PORTAL_IMAGE_PRESETS.sectionImage)}
+                srcSet={buildPortalImageSrcSet(storyImage, [720, 1200, 1600], {
+                  quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
+                })}
+                sizes="(max-width: 768px) 100vw, 50vw"
+                alt={storyTitle}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          ) : (
+            <div className="aspect-[4/5] bg-surface" aria-hidden="true" />
+          )}
           <div>
             <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase mb-6 text-left">
               {storyTitle}

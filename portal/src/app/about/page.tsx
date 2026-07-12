@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactElement } from "react";
 import { portalAPI } from "@/lib/api";
 import { buildAboutPageMetadata } from "@/lib/seo";
-import { parseConfigJson } from "@/lib/site-config";
+import { normalizeSiteConfig, parseAboutUsConfig } from "@/lib/site-config";
 import {
   buildPortalImageSrcSet,
   buildPortalImageUrl,
@@ -11,112 +11,41 @@ import {
 } from "@/lib/image-url";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
-
-  if (!siteConfig) {
-    return {
-      title: "About Us | OSEN FURNITURE",
-      description: "Learn more about OSEN FURNITURE and our furniture craftsmanship philosophy.",
-    };
-  }
-
-  const aboutData = parseConfigJson<Record<string, unknown>>(siteConfig.about_us, {});
+  const siteConfigResponse = await portalAPI.getSiteConfig().catch(() => null);
+  const siteConfig = normalizeSiteConfig(siteConfigResponse);
+  const aboutData = parseAboutUsConfig(siteConfig.about_us);
   const aboutBannerImage = siteConfig.about_banner_image?.trim();
 
   return buildAboutPageMetadata(siteConfig, {
-    storyTitle: typeof aboutData.storyTitle === "string" ? aboutData.storyTitle : undefined,
-    storyContent: typeof aboutData.storyContent === "string" ? aboutData.storyContent : undefined,
+    storyTitle: aboutData.storyTitle,
+    storyContent: aboutData.storyContent,
     imageUrl:
       aboutBannerImage
         ? aboutBannerImage
-        : typeof aboutData.bannerImage === "string"
+        : aboutData.bannerImage
         ? aboutData.bannerImage
-        : typeof aboutData.storyImage === "string"
+        : aboutData.storyImage
           ? aboutData.storyImage
           : undefined,
   });
 }
 
 export default async function AboutPage() {
-  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
-
-  if (!siteConfig?.about_us) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-red-500 text-lg">站点配置缺失: about_us，请在后台关于我们页面配置中添加</p>
-      </div>
-    );
-  }
-
-  const aboutData = parseConfigJson<Record<string, unknown> | null>(siteConfig.about_us, null);
+  const siteConfigResponse = await portalAPI.getSiteConfig().catch(() => null);
+  const siteConfig = normalizeSiteConfig(siteConfigResponse);
+  const aboutData = parseAboutUsConfig(siteConfig.about_us);
   const configuredAboutBannerImage = siteConfig.about_banner_image?.trim();
-  if (!aboutData) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-red-500 text-lg">站点配置错误: about_us JSON 格式异常</p>
-      </div>
-    );
-  }
-
-  const {
-    bannerImage,
-    storyImage,
-    storyTitle,
-    storyContent,
-    philosophy,
-    craftImage,
-    craftTitle,
-    craftContent,
-    stats,
-    ctaText,
-    ctaButtonText,
-  } = aboutData as {
-    bannerImage?: string;
-    storyImage?: string;
-    storyTitle?: string;
-    storyContent?: string;
-    philosophy?: Array<{ icon: string; title: string; desc: string }>;
-    craftImage?: string;
-    craftTitle?: string;
-    craftContent?: string;
-    stats?: Array<{ number: string; label: string }>;
-    ctaText?: string;
-    ctaButtonText?: string;
-  };
-
-  // 校验必填字段
-  const missing: string[] = [];
-  if (!configuredAboutBannerImage && !bannerImage) missing.push("bannerImage");
-  if (!storyImage) missing.push("storyImage");
-  if (!storyTitle) missing.push("storyTitle");
-  if (!storyContent) missing.push("storyContent");
-  if (!philosophy?.length) missing.push("philosophy");
-  if (!craftImage) missing.push("craftImage");
-  if (!craftTitle) missing.push("craftTitle");
-  if (!craftContent) missing.push("craftContent");
-  if (!stats?.length) missing.push("stats");
-  if (!ctaText) missing.push("ctaText");
-  if (!ctaButtonText) missing.push("ctaButtonText");
-
-  if (missing.length > 0) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-red-500 text-lg">about_us 配置缺少字段: {missing.join(", ")}</p>
-      </div>
-    );
-  }
-
-  const philosophyItems = philosophy ?? [];
-  const statsItems = stats ?? [];
-  const safeBannerImage = configuredAboutBannerImage || bannerImage || "";
-  const safeStoryImage = storyImage ?? "";
-  const safeStoryTitle = storyTitle ?? "";
-  const safeStoryContent = storyContent ?? "";
-  const safeCraftImage = craftImage ?? "";
-  const safeCraftTitle = craftTitle ?? "";
-  const safeCraftContent = craftContent ?? "";
-  const safeCtaText = ctaText ?? "";
-  const safeCtaButtonText = ctaButtonText ?? "";
+  const philosophyItems = aboutData.philosophy;
+  const statsItems = aboutData.stats;
+  const safeBannerImage = configuredAboutBannerImage || aboutData.bannerImage;
+  const safeStoryImage = aboutData.storyImage;
+  const safeStoryTitle = aboutData.storyTitle;
+  const safeStoryContent = aboutData.storyContent;
+  const safeCraftImage = aboutData.craftImage;
+  const safeCraftTitle = aboutData.craftTitle;
+  const safeCraftContent = aboutData.craftContent;
+  const safeCtaText = aboutData.ctaText;
+  const safeCtaButtonText = aboutData.ctaButtonText;
   const optimizedAboutBannerImage = buildPortalImageUrl(
     safeBannerImage,
     PORTAL_IMAGE_PRESETS.pageBanner
@@ -126,15 +55,19 @@ export default async function AboutPage() {
     <>
       {/* Banner */}
       <section className="relative h-[40vh] min-h-[300px] flex items-center justify-center">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `
-              linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
-              url(${optimizedAboutBannerImage}) center/cover no-repeat
-            `,
-          }}
-        />
+        {safeBannerImage ? (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `
+                linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
+                url(${optimizedAboutBannerImage}) center/cover no-repeat
+              `,
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[#1a1a1a]" />
+        )}
         <div className="relative z-10 text-center text-white">
           <p className="text-sm font-light tracking-wider mb-2">
             <Link href="/" className="hover:opacity-80">
@@ -150,20 +83,22 @@ export default async function AboutPage() {
 
       {/* Story */}
       <section className="py-30 px-6 md:px-15">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-20 max-w-[1200px] mx-auto items-center">
-          <div className="aspect-[4/5] overflow-hidden">
-            <img
-              src={buildPortalImageUrl(safeStoryImage, PORTAL_IMAGE_PRESETS.sectionImage)}
-              srcSet={buildPortalImageSrcSet(safeStoryImage, [720, 1200, 1600], {
-                quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
-              })}
-              sizes="(max-width: 768px) 100vw, 50vw"
-              alt={safeStoryTitle}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
+        <div className={`grid grid-cols-1 gap-20 max-w-[1200px] mx-auto items-center ${safeStoryImage ? "md:grid-cols-2" : "max-w-[720px]"}`}>
+          {safeStoryImage ? (
+            <div className="aspect-[4/5] overflow-hidden">
+              <img
+                src={buildPortalImageUrl(safeStoryImage, PORTAL_IMAGE_PRESETS.sectionImage)}
+                srcSet={buildPortalImageSrcSet(safeStoryImage, [720, 1200, 1600], {
+                  quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
+                })}
+                sizes="(max-width: 768px) 100vw, 50vw"
+                alt={safeStoryTitle}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          ) : null}
           <div>
             <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase mb-6 text-left">
               {safeStoryTitle}
@@ -194,19 +129,21 @@ export default async function AboutPage() {
       {/* Craft */}
       <section className="py-30 px-6 md:px-15">
         <div className="max-w-[1200px] mx-auto">
-          <div className="aspect-[16/9] overflow-hidden mb-10">
-            <img
-              src={buildPortalImageUrl(safeCraftImage, PORTAL_IMAGE_PRESETS.sectionImage)}
-              srcSet={buildPortalImageSrcSet(safeCraftImage, [720, 1200, 1600], {
-                quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
-              })}
-              sizes="100vw"
-              alt={safeCraftTitle}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
+          {safeCraftImage ? (
+            <div className="aspect-[16/9] overflow-hidden mb-10">
+              <img
+                src={buildPortalImageUrl(safeCraftImage, PORTAL_IMAGE_PRESETS.sectionImage)}
+                srcSet={buildPortalImageSrcSet(safeCraftImage, [720, 1200, 1600], {
+                  quality: PORTAL_IMAGE_PRESETS.sectionImage.quality,
+                })}
+                sizes="100vw"
+                alt={safeCraftTitle}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          ) : null}
           <div className="max-w-[600px] mx-auto text-center">
             <h2 className="text-2xl font-light tracking-[6px] uppercase mb-6">{safeCraftTitle}</h2>
             <p className="text-sm font-light leading-[1.8] text-muted">{safeCraftContent}</p>
@@ -215,16 +152,18 @@ export default async function AboutPage() {
       </section>
 
       {/* Stats */}
-      <section className="py-20 px-6 md:px-15 bg-[#1a1a1a] text-white">
-        <div className="grid grid-cols-3 gap-10 max-w-[800px] mx-auto text-center">
-          {statsItems.map((stat, index: number) => (
-            <div key={index}>
-              <p className="text-3xl md:text-4xl font-light tracking-wider mb-2">{stat.number}</p>
-              <p className="text-sm font-light tracking-wider text-white/60 uppercase">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {statsItems.length > 0 ? (
+        <section className="py-20 px-6 md:px-15 bg-[#1a1a1a] text-white">
+          <div className="grid grid-cols-3 gap-10 max-w-[800px] mx-auto text-center">
+            {statsItems.map((stat, index: number) => (
+              <div key={index}>
+                <p className="text-3xl md:text-4xl font-light tracking-wider mb-2">{stat.number}</p>
+                <p className="text-sm font-light tracking-wider text-white/60 uppercase">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* CTA */}
       <section className="py-30 px-6 md:px-15 text-center">

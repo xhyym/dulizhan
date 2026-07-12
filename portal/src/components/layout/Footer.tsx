@@ -2,69 +2,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
 import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
+import {
+  normalizeSiteConfig,
+  parseFooterInfo,
+  parseSocialLinks,
+} from "@/lib/site-config";
 
 export default async function Footer() {
-  const siteConfig = await portalAPI
+  const siteConfigResponse = await portalAPI
     .getSiteConfig()
     .catch(() => null);
-
-  if (!siteConfig) {
-    return (
-      <footer className="bg-[#1a1a1a] text-white px-6 py-10">
-        <p className="text-red-400 text-sm text-center">站点配置加载失败</p>
-      </footer>
-    );
-  }
-
+  const siteConfig = normalizeSiteConfig(siteConfigResponse);
   const siteTitle = siteConfig.site_title;
   const siteLogo = siteConfig.site_logo?.trim() || "";
-  if (!siteTitle) {
-    return (
-      <footer className="bg-[#1a1a1a] text-white px-6 py-10">
-        <p className="text-red-400 text-sm text-center">站点配置缺失: site_title</p>
-      </footer>
-    );
-  }
-
-  const contactEmail = siteConfig.contact_email;
-  if (!contactEmail) {
-    return (
-      <footer className="bg-[#1a1a1a] text-white px-6 py-10">
-        <p className="text-red-400 text-sm text-center">站点配置缺失: contact_email</p>
-      </footer>
-    );
-  }
-
-  const contactWhatsapp = siteConfig.contact_whatsapp;
-  if (!contactWhatsapp) {
-    return (
-      <footer className="bg-[#1a1a1a] text-white px-6 py-10">
-        <p className="text-red-400 text-sm text-center">站点配置缺失: contact_whatsapp</p>
-      </footer>
-    );
-  }
-
-  let footerData: { copyright: string; links: { title: string; url: string }[] };
-  try {
-    footerData = JSON.parse(siteConfig.footer_info);
-  } catch {
-    return (
-      <footer className="bg-[#1a1a1a] text-white px-6 py-10">
-        <p className="text-red-400 text-sm text-center">站点配置错误: footer_info JSON 格式异常</p>
-      </footer>
-    );
-  }
-
-  let socialLinks: Record<string, string>;
-  try {
-    socialLinks = JSON.parse(siteConfig.social_links);
-  } catch {
-    socialLinks = {};
-  }
-
-  const activeSocialLinks = Object.entries(socialLinks).filter(([, url]) =>
-    Boolean(url?.trim())
-  );
+  const contactEmail = siteConfig.contact_email?.trim() || "";
+  const contactWhatsapp = siteConfig.contact_whatsapp?.trim() || "";
+  const footerData = parseFooterInfo(siteConfig.footer_info);
+  const activeSocialLinks = Object.entries(parseSocialLinks(siteConfig.social_links));
 
   const socialLabels: Record<string, string> = {
     facebook: "Facebook",
@@ -96,8 +50,7 @@ export default async function Footer() {
               </span>
             </div>
             <p className="text-sm font-light leading-relaxed text-white/60">
-              Handcrafted furniture for modern living. Simple, functional, and
-              beautiful.
+              {footerData.description}
             </p>
           </div>
           <div>
@@ -127,30 +80,36 @@ export default async function Footer() {
               </li>
             </ul>
           </div>
-          <div>
-            <h4 className="text-[13px] font-medium tracking-wider uppercase mb-6">
-              Customer Service
-            </h4>
-            <ul className="space-y-3">
-              <li>
-                <a href={`mailto:${contactEmail}`} className="text-sm font-light text-white/60 hover:text-white transition-colors">
-                  {contactEmail}
-                </a>
-              </li>
-              <li>
-                <a href={`https://wa.me/${contactWhatsapp.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-sm font-light text-white/60 hover:text-white transition-colors">
-                  WhatsApp: {contactWhatsapp}
-                </a>
-              </li>
-              {footerData.links?.map((link, i) => (
+          {(contactEmail || contactWhatsapp || footerData.links.length > 0) && (
+            <div>
+              <h4 className="text-[13px] font-medium tracking-wider uppercase mb-6">
+                Customer Service
+              </h4>
+              <ul className="space-y-3">
+                {contactEmail ? (
+                  <li>
+                    <a href={`mailto:${contactEmail}`} className="text-sm font-light text-white/60 hover:text-white transition-colors">
+                      {contactEmail}
+                    </a>
+                  </li>
+                ) : null}
+                {contactWhatsapp ? (
+                  <li>
+                    <a href={`https://wa.me/${contactWhatsapp.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-sm font-light text-white/60 hover:text-white transition-colors">
+                      WhatsApp: {contactWhatsapp}
+                    </a>
+                  </li>
+                ) : null}
+                {footerData.links.map((link, i) => (
                 <li key={i}>
                   <Link href={link.url} className="text-sm font-light text-white/60 hover:text-white transition-colors">
                     {link.title}
                   </Link>
                 </li>
               ))}
-            </ul>
-          </div>
+              </ul>
+            </div>
+          )}
           {activeSocialLinks.length > 0 ? (
           <div>
             <h4 className="text-[13px] font-medium tracking-wider uppercase mb-6">

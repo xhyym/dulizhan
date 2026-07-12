@@ -14,13 +14,22 @@
           <ElInput v-model="formData.copyright" placeholder="© 2026 Indie Station. All rights reserved." />
         </ElFormItem>
 
+        <ElFormItem label="品牌简介">
+          <ElInput
+            v-model="formData.description"
+            type="textarea"
+            :rows="3"
+            placeholder="显示在 Footer 左侧品牌名称下方"
+          />
+        </ElFormItem>
+
         <ElFormItem label="底部链接">
           <div style="width: 100%">
             <ElButton size="small" @click="addLink" style="margin-bottom: 8px">添加链接</ElButton>
             <ElTable :data="formData.links" v-if="formData.links.length" border size="small">
               <ElTableColumn label="链接名称" min-width="150">
                 <template #default="{ row }">
-                  <ElInput v-model="row.name" size="small" placeholder="如: About Us" />
+                  <ElInput v-model="row.title" size="small" placeholder="如: About Us" />
                 </template>
               </ElTableColumn>
               <ElTableColumn label="链接地址" min-width="250">
@@ -69,7 +78,8 @@ const saving = ref(false)
 
 const formData = ref({
   copyright: '',
-  links: [] as { name: string; url: string }[],
+  description: '',
+  links: [] as { title: string; url: string }[],
   social_facebook: '',
   social_instagram: '',
   social_twitter: '',
@@ -85,7 +95,13 @@ async function loadData() {
         try {
           const footer = JSON.parse(data.footer_info)
           formData.value.copyright = footer.copyright || ''
-          formData.value.links = footer.links || []
+          formData.value.description = footer.description || ''
+          formData.value.links = Array.isArray(footer.links)
+            ? footer.links.map((link: { title?: string; name?: string; url?: string }) => ({
+                title: link.title || link.name || '',
+                url: link.url || ''
+              }))
+            : []
         } catch { }
       }
       if (data.social_links) {
@@ -104,7 +120,7 @@ async function loadData() {
 }
 
 function addLink() {
-  formData.value.links.push({ name: '', url: '' })
+  formData.value.links.push({ title: '', url: '' })
 }
 
 async function handleSave() {
@@ -112,6 +128,7 @@ async function handleSave() {
   try {
     const footerInfo = JSON.stringify({
       copyright: formData.value.copyright,
+      description: formData.value.description,
       links: formData.value.links
     })
     const socialLinks = JSON.stringify({

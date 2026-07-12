@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { portalAPI } from "@/lib/api";
 import { buildContactPageMetadata } from "@/lib/seo";
-import { parseConfigJson } from "@/lib/site-config";
+import { normalizeSiteConfig, parseSocialLinks } from "@/lib/site-config";
 import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,38 +19,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactPage() {
-  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
-
-  if (!siteConfig) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-red-500 text-lg">站点配置加载失败，请检查后端服务是否正常</p>
-      </div>
-    );
-  }
-
-  const contactEmail = siteConfig.contact_email;
-  if (!contactEmail) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-red-500 text-lg">站点配置缺失: contact_email</p>
-      </div>
-    );
-  }
-
-  const contactWhatsapp = siteConfig.contact_whatsapp;
-  if (!contactWhatsapp) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-red-500 text-lg">站点配置缺失: contact_whatsapp</p>
-      </div>
-    );
-  }
-
-  const socialLinks = parseConfigJson<Record<string, string>>(siteConfig.social_links, {});
-  const activeSocialLinks = Object.entries(socialLinks).filter(([, url]) =>
-    Boolean(url?.trim())
-  );
+  const siteConfigResponse = await portalAPI.getSiteConfig().catch(() => null);
+  const siteConfig = normalizeSiteConfig(siteConfigResponse);
+  const contactEmail = siteConfig.contact_email?.trim() || "";
+  const contactWhatsapp = siteConfig.contact_whatsapp?.trim() || "";
+  const activeSocialLinks = Object.entries(parseSocialLinks(siteConfig.social_links));
   const contactBannerImage = siteConfig.contact_banner_image?.trim();
   const optimizedContactBannerImage = buildPortalImageUrl(
     contactBannerImage,
@@ -104,9 +77,10 @@ export default async function ContactPage() {
             pricing, or anything else, our team is ready to answer all your questions.
           </p>
 
+          {(contactEmail || contactWhatsapp) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-15">
             {/* Email */}
-            <div className="bg-surface p-10">
+            {contactEmail ? <div className="bg-surface p-10">
               <div className="w-14 h-14 mx-auto mb-6 flex items-center justify-center">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -120,10 +94,10 @@ export default async function ContactPage() {
               >
                 {contactEmail}
               </a>
-            </div>
+            </div> : null}
 
             {/* WhatsApp */}
-            <div className="bg-surface p-10">
+            {contactWhatsapp ? <div className="bg-surface p-10">
               <div className="w-14 h-14 mx-auto mb-6 flex items-center justify-center">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
@@ -138,8 +112,13 @@ export default async function ContactPage() {
               >
                 {contactWhatsapp}
               </a>
-            </div>
+            </div> : null}
           </div>
+          ) : (
+            <p className="mb-15 text-sm font-light text-muted">
+              Contact details will be available soon.
+            </p>
+          )}
 
           {/* Social Links */}
           {activeSocialLinks.length > 0 && (

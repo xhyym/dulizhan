@@ -45,14 +45,14 @@ services:
 
   # ---- 统一 nginx 网关（唯一对外入口）----
   # /        → portal:3000
-  # /admin/  → website-boot 静态文件（构建进镜像）
+  # /osengroup/ → website-boot 静态文件（构建进镜像）
   # /api/    → backend:8080
   gateway:
     build:
       context: .
       dockerfile: gateway/Dockerfile
       args:
-        VITE_BASE_URL: /admin/
+        VITE_BASE_URL: /osengroup/
         VITE_API_URL: ""
     container_name: dulizhan-gateway
     restart: unless-stopped
@@ -68,4 +68,3 @@ services:
     depends_on:
       - portal
       - backend
-

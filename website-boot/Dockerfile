@@ -11,7 +11,7 @@ COPY . .
 # pnpm-workspace.yaml 缺少 packages 字段，补上
 RUN printf 'packages:\n  - .\n\n' | cat - pnpm-workspace.yaml > temp && mv temp pnpm-workspace.yaml
 ARG VITE_API_URL=
-ARG VITE_BASE_URL=/admin/
+ARG VITE_BASE_URL=/osengroup/
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_BASE_URL=${VITE_BASE_URL}
 RUN pnpm build

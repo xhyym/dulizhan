@@ -18,14 +18,14 @@ server {
     # 上传文件体积上限（与后端保持一致，按需调整）
     client_max_body_size 50m;
 
-    # ---- 管理后台 website-boot（Vite SPA，静态托管在 /admin/）----
-    location /admin/ {
-        alias /usr/share/nginx/html/admin/;
-        try_files $uri $uri/ /admin/index.html;
+    # ---- 管理后台 website-boot（Vite SPA，静态托管在 /osengroup/）----
+    location /osengroup/ {
+        alias /usr/share/nginx/html/osengroup/;
+        try_files $uri $uri/ /osengroup/index.html;
     }
     # 兼容不带斜杠访问
-    location = /admin {
-        return 301 /admin/;
+    location = /osengroup {
+        return 301 /osengroup/;
     }
 
     # ---- 访客上报调试日志，仅用于排查 Cloudflare 地理位置 Header 透传问题 ----

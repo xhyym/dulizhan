@@ -12,7 +12,7 @@ import AnalyticsScripts from "@/components/analytics/AnalyticsScripts";
 import TranslateProvider from "@/components/TranslateProvider";
 import { portalAPI } from "@/lib/api";
 import { buildRootMetadata } from "@/lib/seo";
-import { getSiteDisplayName } from "@/lib/site-config";
+import { getSiteDisplayName, normalizeSiteConfig } from "@/lib/site-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,16 +21,7 @@ const geistSans = Geist({
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
-
-  if (!siteConfig) {
-    return {
-      title: "OSEN FURNITURE",
-      description:
-        "OSEN FURNITURE provides modern sofas, tables, chairs and custom furniture solutions for wholesale, retail and project orders worldwide.",
-    };
-  }
-
-  return buildRootMetadata(siteConfig);
+  return buildRootMetadata(normalizeSiteConfig(siteConfig));
 }
 
 export default async function RootLayout({
@@ -38,8 +29,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
-  const siteName = siteConfig ? getSiteDisplayName(siteConfig) : "OSEN FURNITURE";
+  const siteConfigResponse = await portalAPI.getSiteConfig().catch(() => null);
+  const siteConfig = normalizeSiteConfig(siteConfigResponse);
+  const siteName = getSiteDisplayName(siteConfig);
   const siteLogo = siteConfig?.site_logo?.trim() || "";
   const siteFavicon = siteConfig?.site_favicon?.trim() || "";
   const analyticsConfigJson = siteConfig?.analytics_config;

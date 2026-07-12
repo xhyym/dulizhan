@@ -21,6 +21,7 @@ export default function HeroCarousel({ images, tagline, title, subtitle }: HeroC
   const isPointerActiveRef = useRef(false);
   const isHorizontalDragRef = useRef(false);
   const suppressClickRef = useRef(false);
+  const hasImages = images.length > 0;
 
   function showPreviousImage() {
     setCurrent((prev) => (prev - 1 + images.length) % images.length);
@@ -121,23 +122,27 @@ export default function HeroCarousel({ images, tagline, title, subtitle }: HeroC
       onPointerCancel={handlePointerCancel}
       onClickCapture={handleClickCapture}
     >
-      {/* 图片层 */}
-      {images.map((img, i) => (
-        <div
-          key={i}
-          className="absolute inset-0 transition-opacity duration-1000"
-          style={{
-            opacity: i === current ? 1 : 0,
-            background: `
-              linear-gradient(to right, rgba(0,0,0,0.3), rgba(0,0,0,0.1)),
-              linear-gradient(to left, rgba(0,0,0,0.3), rgba(0,0,0,0.1)),
-              linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.1)),
-              linear-gradient(to top, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
-              url(${img}) center/cover no-repeat
-            `,
-          }}
-        />
-      ))}
+      {/* 未配置轮播图时保留稳定的纯色首屏，避免空数组触发轮播计算异常。 */}
+      {hasImages ? (
+        images.map((img, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 transition-opacity duration-1000"
+            style={{
+              opacity: i === current ? 1 : 0,
+              background: `
+                linear-gradient(to right, rgba(0,0,0,0.3), rgba(0,0,0,0.1)),
+                linear-gradient(to left, rgba(0,0,0,0.3), rgba(0,0,0,0.1)),
+                linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.1)),
+                linear-gradient(to top, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
+                url(${img}) center/cover no-repeat
+              `,
+            }}
+          />
+        ))
+      ) : (
+        <div className="absolute inset-0 bg-[#1a1a1a]" />
+      )}
       <div className="absolute inset-0 hero-overlay pointer-events-none" />
 
       {/* 文案 */}
