@@ -35,13 +35,10 @@
                 />
               </ElFormItem>
 
-              <div class="flex-cb mt-2 text-sm">
+              <div class="mt-2 text-sm">
                 <ElCheckbox v-model="formData.rememberPassword">{{
                   $t('login.rememberPwd')
                 }}</ElCheckbox>
-                <ElButton type="primary" link @click="fillDemoAccount">
-                  体验账号
-                </ElButton>
               </div>
 
               <div style="margin-top: 30px">
@@ -100,12 +97,6 @@
   }))
 
   const loading = ref(false)
-
-  // 快捷填入体验账号
-  const fillDemoAccount = () => {
-    formData.username = 'superadmin'
-    formData.password = 'admin123'
-  }
 
   // 登录
   const handleSubmit = async () => {
