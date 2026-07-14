@@ -31,6 +31,22 @@ public interface R2Service {
     PresignedUrlVo generateUploadUrl(String fileName, String contentType, Long fileSize, AdminUploadPurpose purpose);
 
     /**
+     * 生成带上传用途和图片比例校验的预签名上传 URL。
+     * 图片宽高由管理端读取原图后传入，后端在签发地址前进行二次校验。
+     *
+     * @param imageWidth  图片真实宽度
+     * @param imageHeight 图片真实高度
+     */
+    PresignedUrlVo generateUploadUrl(
+            String fileName,
+            String contentType,
+            Long fileSize,
+            AdminUploadPurpose purpose,
+            Integer imageWidth,
+            Integer imageHeight
+    );
+
+    /**
      * 根据公开访问 URL 删除 R2 对象。
      *
      * @param fileUrl 文件公开访问地址

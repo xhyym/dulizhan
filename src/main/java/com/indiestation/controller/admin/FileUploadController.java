@@ -32,9 +32,18 @@ public class FileUploadController {
             @RequestParam String fileName,
             @RequestParam String contentType,
             @RequestParam(required = false) Long fileSize,
-            @RequestParam(required = false) String purpose) {
+            @RequestParam(required = false) String purpose,
+            @RequestParam(required = false) Integer imageWidth,
+            @RequestParam(required = false) Integer imageHeight) {
         AdminUploadPurpose uploadPurpose = AdminUploadPurpose.fromCode(purpose).orElse(null);
-        PresignedUrlVo vo = r2Service.generateUploadUrl(fileName, contentType, fileSize, uploadPurpose);
+        PresignedUrlVo vo = r2Service.generateUploadUrl(
+                fileName,
+                contentType,
+                fileSize,
+                uploadPurpose,
+                imageWidth,
+                imageHeight
+        );
         return Result.success(vo);
     }
 

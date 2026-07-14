@@ -58,7 +58,7 @@
               @click="handleDeleteLogo"
             />
           </div>
-          <div class="upload-tip">建议不低于 360×120，图片比例接近 3:1</div>
+          <div class="upload-tip">图片比例需接近 3:1</div>
         </ElFormItem>
 
         <ElFormItem label="Title Logo">
@@ -86,63 +86,7 @@
               @click="handleDeleteFavicon"
             />
           </div>
-          <div class="upload-tip">建议不低于 256×256，图片比例接近 1:1</div>
-        </ElFormItem>
-
-        <ElFormItem label="Shop背景图">
-          <div class="upload-row">
-            <ElUpload :http-request="handleProductsBannerUpload" :show-file-list="false" accept="image/*">
-              <div class="upload-box banner-box">
-                <ElImage
-                  v-if="formData.products_banner_image"
-                  :src="formData.products_banner_image"
-                  class="upload-image"
-                  fit="cover"
-                />
-                <div v-else class="upload-placeholder">
-                  <ElIcon class="upload-placeholder-icon"><Picture /></ElIcon>
-                  <span>点击上传</span>
-                </div>
-              </div>
-            </ElUpload>
-            <ElButton
-              v-if="formData.products_banner_image"
-              type="danger"
-              size="small"
-              :icon="Delete"
-              circle
-              @click="handleDeleteProductsBanner"
-            />
-          </div>
-          <div class="upload-tip">建议不低于 1920×600，图片比例接近 16:5</div>
-        </ElFormItem>
-
-        <ElFormItem label="About背景图">
-          <div class="upload-row">
-            <ElUpload :http-request="handleAboutBannerUpload" :show-file-list="false" accept="image/*">
-              <div class="upload-box banner-box">
-                <ElImage
-                  v-if="formData.about_banner_image"
-                  :src="formData.about_banner_image"
-                  class="upload-image"
-                  fit="cover"
-                />
-                <div v-else class="upload-placeholder">
-                  <ElIcon class="upload-placeholder-icon"><Picture /></ElIcon>
-                  <span>点击上传</span>
-                </div>
-              </div>
-            </ElUpload>
-            <ElButton
-              v-if="formData.about_banner_image"
-              type="danger"
-              size="small"
-              :icon="Delete"
-              circle
-              @click="handleDeleteAboutBanner"
-            />
-          </div>
-          <div class="upload-tip">建议不低于 1920×600，图片比例接近 16:5</div>
+          <div class="upload-tip">图片比例需接近 1:1</div>
         </ElFormItem>
 
         <ElFormItem label="Contact背景图">
@@ -170,7 +114,7 @@
               @click="handleDeleteContactBanner"
             />
           </div>
-          <div class="upload-tip">建议不低于 1920×600，图片比例接近 16:5</div>
+          <div class="upload-tip">图片比例需接近 21:9</div>
         </ElFormItem>
 
         <ElFormItem label="联系邮箱">
@@ -203,15 +147,11 @@ const saving = ref(false)
 type ManagedImageField =
   | 'site_logo'
   | 'site_favicon'
-  | 'products_banner_image'
-  | 'about_banner_image'
   | 'contact_banner_image'
 
 const SITE_LOGO_RULE: ImageUploadRule = {
   purpose: 'site_logo',
   fieldLabel: '网站 Logo',
-  minWidth: 360,
-  minHeight: 120,
   ratioLabel: '3:1',
   minRatio: 2.7,
   maxRatio: 3.3,
@@ -221,8 +161,6 @@ const SITE_LOGO_RULE: ImageUploadRule = {
 const SITE_FAVICON_RULE: ImageUploadRule = {
   purpose: 'site_favicon',
   fieldLabel: 'Title Logo',
-  minWidth: 256,
-  minHeight: 256,
   ratioLabel: '1:1',
   minRatio: 0.95,
   maxRatio: 1.05,
@@ -231,12 +169,10 @@ const SITE_FAVICON_RULE: ImageUploadRule = {
 
 const PAGE_BANNER_RULE: ImageUploadRule = {
   purpose: 'site_page_banner',
-  fieldLabel: '页面背景图',
-  minWidth: 1920,
-  minHeight: 600,
-  ratioLabel: '16:5',
-  minRatio: 3.1,
-  maxRatio: 3.3,
+  fieldLabel: 'Contact背景图',
+  ratioLabel: '21:9',
+  minRatio: 2.28,
+  maxRatio: 2.39,
   maxSizeInBytes: 8 * 1024 * 1024
 }
 
@@ -247,8 +183,6 @@ const formData = ref({
   hero_subtitle: '',
   site_logo: '',
   site_favicon: '',
-  products_banner_image: '',
-  about_banner_image: '',
   contact_banner_image: '',
   contact_email: '',
   contact_whatsapp: '',
@@ -324,8 +258,8 @@ async function loadData() {
 
 async function handleLogoUpload(options: any) {
   try {
-    await validateImageUpload(options.file, SITE_LOGO_RULE)
-    const fileUrl = await uploadImage(options.file, SITE_LOGO_RULE.purpose)
+    const imageDimensions = await validateImageUpload(options.file, SITE_LOGO_RULE)
+    const fileUrl = await uploadImage(options.file, SITE_LOGO_RULE.purpose, imageDimensions)
     await replaceManagedImage('site_logo', fileUrl)
     ElMessage.success('Logo上传成功')
   } catch (e: any) {
@@ -335,8 +269,8 @@ async function handleLogoUpload(options: any) {
 
 async function handleFaviconUpload(options: any) {
   try {
-    await validateImageUpload(options.file, SITE_FAVICON_RULE)
-    const fileUrl = await uploadImage(options.file, SITE_FAVICON_RULE.purpose)
+    const imageDimensions = await validateImageUpload(options.file, SITE_FAVICON_RULE)
+    const fileUrl = await uploadImage(options.file, SITE_FAVICON_RULE.purpose, imageDimensions)
     await replaceManagedImage('site_favicon', fileUrl)
     ElMessage.success('Title Logo 上传成功')
   } catch (e: any) {
@@ -344,41 +278,10 @@ async function handleFaviconUpload(options: any) {
   }
 }
 
-async function handleProductsBannerUpload(options: any) {
-  try {
-    await validateImageUpload(options.file, {
-      ...PAGE_BANNER_RULE,
-      fieldLabel: 'Shop背景图'
-    })
-    const fileUrl = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
-    await replaceManagedImage('products_banner_image', fileUrl)
-    ElMessage.success('Shop背景图上传成功')
-  } catch (e: any) {
-    ElMessage.error(e.message || '上传失败')
-  }
-}
-
-async function handleAboutBannerUpload(options: any) {
-  try {
-    await validateImageUpload(options.file, {
-      ...PAGE_BANNER_RULE,
-      fieldLabel: 'About背景图'
-    })
-    const fileUrl = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
-    await replaceManagedImage('about_banner_image', fileUrl)
-    ElMessage.success('About背景图上传成功')
-  } catch (e: any) {
-    ElMessage.error(e.message || '上传失败')
-  }
-}
-
 async function handleContactBannerUpload(options: any) {
   try {
-    await validateImageUpload(options.file, {
-      ...PAGE_BANNER_RULE,
-      fieldLabel: 'Contact背景图'
-    })
-    const fileUrl = await uploadImage(options.file, PAGE_BANNER_RULE.purpose)
+    const imageDimensions = await validateImageUpload(options.file, PAGE_BANNER_RULE)
+    const fileUrl = await uploadImage(options.file, PAGE_BANNER_RULE.purpose, imageDimensions)
     await replaceManagedImage('contact_banner_image', fileUrl)
     ElMessage.success('Contact背景图上传成功')
   } catch (e: any) {
@@ -394,14 +297,6 @@ async function handleDeleteFavicon() {
   await clearManagedImage('site_favicon', 'Title Logo 已删除')
 }
 
-async function handleDeleteProductsBanner() {
-  await clearManagedImage('products_banner_image', 'Shop背景图已删除')
-}
-
-async function handleDeleteAboutBanner() {
-  await clearManagedImage('about_banner_image', 'About背景图已删除')
-}
-
 async function handleDeleteContactBanner() {
   await clearManagedImage('contact_banner_image', 'Contact背景图已删除')
 }
@@ -409,7 +304,11 @@ async function handleDeleteContactBanner() {
 async function handleSave() {
   saving.value = true
   try {
-    await fetchUpdateSiteConfig({ ...formData.value })
+    await fetchUpdateSiteConfig({
+      ...formData.value,
+      products_banner_image: '',
+      about_banner_image: ''
+    })
     pendingUploadUrls.value = []
     ElMessage.success('保存成功')
   } finally {

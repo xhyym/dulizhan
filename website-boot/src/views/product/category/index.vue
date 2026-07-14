@@ -85,7 +85,7 @@
                 <span>上传图片</span>
               </div>
             </ElUpload>
-            <div class="upload-tip">仅一级分类支持上传分类图片，建议尺寸不低于 600×800，比例接近 3:4</div>
+            <div class="upload-tip">仅一级分类支持上传分类图片，图片比例需接近 3:4</div>
           </div>
         </ElFormItem>
         <ElFormItem label="父级分类">
@@ -137,8 +137,6 @@ const pendingUploadedImageUrl = ref('')
 const CATEGORY_IMAGE_RULE: ImageUploadRule = {
   purpose: 'category_image',
   fieldLabel: '分类图片',
-  minWidth: 600,
-  minHeight: 800,
   ratioLabel: '3:4',
   minRatio: 0.72,
   maxRatio: 0.78,
@@ -516,8 +514,8 @@ async function handleImageUpload(options: any) {
   }
 
   try {
-    await validateImageUpload(options.file, CATEGORY_IMAGE_RULE)
-    const url = await uploadImage(options.file, CATEGORY_IMAGE_RULE.purpose)
+    const imageDimensions = await validateImageUpload(options.file, CATEGORY_IMAGE_RULE)
+    const url = await uploadImage(options.file, CATEGORY_IMAGE_RULE.purpose, imageDimensions)
     await deletePendingCategoryImageIfNeeded(formData.value.image)
     pendingUploadedImageUrl.value = url
     formData.value.image = url

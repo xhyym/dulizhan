@@ -61,8 +61,6 @@ const banners = ref<Banner[]>([])
 const HOME_BANNER_RULE: ImageUploadRule = {
   purpose: 'home_banner',
   fieldLabel: '轮播图',
-  minWidth: 1600,
-  minHeight: 900,
   ratioLabel: '16:9',
   minRatio: 1.72,
   maxRatio: 1.83,
@@ -127,8 +125,8 @@ async function cleanupPendingUploads() {
 
 async function handleBannerUpload(options: any, index: number) {
   try {
-    await validateImageUpload(options.file, HOME_BANNER_RULE)
-    const fileUrl = await uploadImage(options.file, HOME_BANNER_RULE.purpose)
+    const imageDimensions = await validateImageUpload(options.file, HOME_BANNER_RULE)
+    const fileUrl = await uploadImage(options.file, HOME_BANNER_RULE.purpose, imageDimensions)
     await deletePendingUploadIfNeeded(banners.value[index]?.image)
     trackPendingUpload(fileUrl)
     banners.value[index].image = fileUrl

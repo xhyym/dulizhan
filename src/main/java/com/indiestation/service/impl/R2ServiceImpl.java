@@ -50,6 +50,18 @@ public class R2ServiceImpl implements R2Service {
 
     @Override
     public PresignedUrlVo generateUploadUrl(String fileName, String contentType, Long fileSize, AdminUploadPurpose purpose) {
+        return generateUploadUrl(fileName, contentType, fileSize, purpose, null, null);
+    }
+
+    @Override
+    public PresignedUrlVo generateUploadUrl(
+            String fileName,
+            String contentType,
+            Long fileSize,
+            AdminUploadPurpose purpose,
+            Integer imageWidth,
+            Integer imageHeight
+    ) {
         S3Presigner s3Presigner = s3PresignerProvider.getIfAvailable();
         if (s3Presigner == null || !r2Config.isConfigured()) {
             log.warn("R2 文件存储未配置，无法生成预签名上传地址: fileName={}, contentType={}", fileName, contentType);
@@ -61,7 +73,7 @@ public class R2ServiceImpl implements R2Service {
             throw new BusinessException("不支持的文件类型: " + contentType);
         }
 
-        validateUploadRequest(fileName, contentType, fileSize, purpose);
+        validateUploadRequest(fileName, contentType, fileSize, purpose, imageWidth, imageHeight);
 
         // 生成对象 Key: images/product-gallery/2026/06/22/{uuid}.jpg
         String key = generateKey(contentType, purpose);
@@ -90,8 +102,8 @@ public class R2ServiceImpl implements R2Service {
         vo.setFileUrl(fileUrl);
         vo.setKey(key);
 
-        log.info("生成预签名URL: key={}, fileUrl={}, purpose={}, fileSize={}",
-                key, fileUrl, purpose != null ? purpose.getCode() : "general", fileSize);
+        log.info("生成预签名URL: key={}, fileUrl={}, purpose={}, fileSize={}, imageWidth={}, imageHeight={}",
+                key, fileUrl, purpose != null ? purpose.getCode() : "general", fileSize, imageWidth, imageHeight);
         return vo;
     }
 
@@ -166,7 +178,14 @@ public class R2ServiceImpl implements R2Service {
     /**
      * 后端兜底校验上传请求，避免有人绕过前端直接申请超大图片预签名地址。
      */
-    private void validateUploadRequest(String fileName, String contentType, Long fileSize, AdminUploadPurpose purpose) {
+    private void validateUploadRequest(
+            String fileName,
+            String contentType,
+            Long fileSize,
+            AdminUploadPurpose purpose,
+            Integer imageWidth,
+            Integer imageHeight
+    ) {
         if (!StringUtils.hasText(fileName)) {
             throw new BusinessException("文件名不能为空");
         }
@@ -187,6 +206,20 @@ public class R2ServiceImpl implements R2Service {
             throw new BusinessException(String.format("%s大小不能超过 %dMB",
                     purpose.getLabel(),
                     purpose.getMaxFileSize() / 1024 / 1024));
+        }
+
+        if (imageWidth == null || imageHeight == null || imageWidth <= 0 || imageHeight <= 0) {
+            throw new BusinessException(purpose.getLabel() + "缺少有效的图片宽高信息");
+        }
+
+        double ratio = (double) imageWidth / imageHeight;
+        if (ratio < purpose.getMinRatio() || ratio > purpose.getMaxRatio()) {
+            throw new BusinessException(String.format(
+                    "%s比例不符合要求，允许范围为 %.2f 到 %.2f",
+                    purpose.getLabel(),
+                    purpose.getMinRatio(),
+                    purpose.getMaxRatio()
+            ));
         }
     }
 

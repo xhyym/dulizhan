@@ -14,19 +14,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const siteConfigResponse = await portalAPI.getSiteConfig().catch(() => null);
   const siteConfig = normalizeSiteConfig(siteConfigResponse);
   const aboutData = parseAboutUsConfig(siteConfig.about_us);
-  const aboutBannerImage = siteConfig.about_banner_image?.trim();
 
   return buildAboutPageMetadata(siteConfig, {
     storyTitle: aboutData.storyTitle,
     storyContent: aboutData.storyContent,
-    imageUrl:
-      aboutBannerImage
-        ? aboutBannerImage
-        : aboutData.bannerImage
-        ? aboutData.bannerImage
-        : aboutData.storyImage
-          ? aboutData.storyImage
-          : undefined,
+    imageUrl: aboutData.bannerImage || aboutData.storyImage || undefined,
   });
 }
 
@@ -34,10 +26,9 @@ export default async function AboutPage() {
   const siteConfigResponse = await portalAPI.getSiteConfig().catch(() => null);
   const siteConfig = normalizeSiteConfig(siteConfigResponse);
   const aboutData = parseAboutUsConfig(siteConfig.about_us);
-  const configuredAboutBannerImage = siteConfig.about_banner_image?.trim();
   const philosophyItems = aboutData.philosophy;
   const statsItems = aboutData.stats;
-  const safeBannerImage = configuredAboutBannerImage || aboutData.bannerImage;
+  const safeBannerImage = aboutData.bannerImage;
   const safeStoryImage = aboutData.storyImage;
   const safeStoryTitle = aboutData.storyTitle;
   const safeStoryContent = aboutData.storyContent;
@@ -85,7 +76,7 @@ export default async function AboutPage() {
       <section className="py-30 px-6 md:px-15">
         <div className={`grid grid-cols-1 gap-20 max-w-[1200px] mx-auto items-center ${safeStoryImage ? "md:grid-cols-2" : "max-w-[720px]"}`}>
           {safeStoryImage ? (
-            <div className="aspect-[4/5] overflow-hidden">
+            <div className="aspect-square overflow-hidden">
               <img
                 src={buildPortalImageUrl(safeStoryImage, PORTAL_IMAGE_PRESETS.sectionImage)}
                 srcSet={buildPortalImageSrcSet(safeStoryImage, [720, 1200, 1600], {
@@ -130,7 +121,7 @@ export default async function AboutPage() {
       <section className="py-30 px-6 md:px-15">
         <div className="max-w-[1200px] mx-auto">
           {safeCraftImage ? (
-            <div className="aspect-[16/9] overflow-hidden mb-10">
+            <div className="aspect-[3/2] overflow-hidden mb-10">
               <img
                 src={buildPortalImageUrl(safeCraftImage, PORTAL_IMAGE_PRESETS.sectionImage)}
                 srcSet={buildPortalImageSrcSet(safeCraftImage, [720, 1200, 1600], {

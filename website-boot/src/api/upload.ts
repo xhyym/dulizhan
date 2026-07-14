@@ -1,16 +1,24 @@
 import request from '@/utils/http'
-import type { AdminImageUploadPurpose } from '@/utils/ui/image-upload'
+import type { AdminImageUploadPurpose, ImageDimensions } from '@/utils/ui/image-upload'
 
 /** 获取 R2 预签名上传 URL */
 export function fetchGetPresignedUrl(
   fileName: string,
   contentType: string,
   fileSize?: number,
-  purpose?: AdminImageUploadPurpose
+  purpose?: AdminImageUploadPurpose,
+  imageDimensions?: ImageDimensions
 ) {
   return request.get<Api.Upload.PresignedUrlVo>({
     url: '/api/admin/upload/presigned',
-    params: { fileName, contentType, fileSize, purpose }
+    params: {
+      fileName,
+      contentType,
+      fileSize,
+      purpose,
+      imageWidth: imageDimensions?.width,
+      imageHeight: imageDimensions?.height
+    }
   })
 }
 
@@ -26,8 +34,12 @@ export async function uploadToR2(uploadUrl: string, file: File): Promise<Respons
 }
 
 /** 上传图片到 R2 */
-export async function uploadImage(file: File, purpose?: AdminImageUploadPurpose): Promise<string> {
-  const presignedUrl = await fetchGetPresignedUrl(file.name, file.type, file.size, purpose)
+export async function uploadImage(
+  file: File,
+  purpose?: AdminImageUploadPurpose,
+  imageDimensions?: ImageDimensions
+): Promise<string> {
+  const presignedUrl = await fetchGetPresignedUrl(file.name, file.type, file.size, purpose, imageDimensions)
 
   if (!presignedUrl?.uploadUrl) {
     throw new Error('获取预签名 URL 失败')

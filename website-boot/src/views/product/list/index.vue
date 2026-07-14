@@ -160,7 +160,7 @@
                 <ElImage
                   v-if="formData.posterImage"
                   :src="formData.posterImage"
-                  style="width: 200px; height: 100px"
+                  style="width: 200px; height: 86px"
                   fit="cover"
                   :preview-src-list="[formData.posterImage]"
                   preview-teleported
@@ -171,7 +171,7 @@
                   :show-file-list="false"
                   accept="image/*"
                 >
-                  <ElIcon class="upload-trigger wide"><Plus /></ElIcon>
+                  <ElIcon class="upload-trigger poster-upload-trigger"><Plus /></ElIcon>
                 </ElUpload>
                 <ElIcon
                   v-if="formData.posterImage"
@@ -181,7 +181,7 @@
                   <CircleClose />
                 </ElIcon>
               </div>
-              <div class="image-tip">建议尺寸 1920×500，图片比例需接近 1920:500</div>
+              <div class="image-tip">图片比例需接近 21:9</div>
             </div>
             <div class="special-image-item">
               <div class="image-label">详情长图</div>
@@ -189,7 +189,7 @@
                 <ElImage
                   v-if="formData.detailImage"
                   :src="formData.detailImage"
-                  style="width: 200px; height: 200px"
+                  style="width: 150px; height: 200px"
                   fit="cover"
                   :preview-src-list="[formData.detailImage]"
                   preview-teleported
@@ -200,7 +200,7 @@
                   :show-file-list="false"
                   accept="image/*"
                 >
-                  <ElIcon class="upload-trigger"><Plus /></ElIcon>
+                  <ElIcon class="upload-trigger detail-upload-trigger"><Plus /></ElIcon>
                 </ElUpload>
                 <ElIcon
                   v-if="formData.detailImage"
@@ -210,7 +210,7 @@
                   <CircleClose />
                 </ElIcon>
               </div>
-              <div class="image-tip">商品详情页底部展示，建议使用 3:4 竖版图片</div>
+              <div class="image-tip">商品详情页底部展示，图片比例需接近 3:4</div>
             </div>
           </div>
         </div>
@@ -320,8 +320,6 @@ const pagination = ref({ current: 1, size: 10, total: 0 })
 const PRODUCT_MAIN_IMAGE_RULE: ImageUploadRule = {
   purpose: 'product_gallery',
   fieldLabel: '商品主图/副图',
-  minWidth: 600,
-  minHeight: 800,
   ratioLabel: '3:4',
   minRatio: 0.72,
   maxRatio: 0.78,
@@ -331,19 +329,15 @@ const PRODUCT_MAIN_IMAGE_RULE: ImageUploadRule = {
 const PRODUCT_POSTER_IMAGE_RULE: ImageUploadRule = {
   purpose: 'product_poster',
   fieldLabel: '海报图',
-  minWidth: 1920,
-  minHeight: 500,
-  ratioLabel: '1920:500',
-  minRatio: 3.7,
-  maxRatio: 3.98,
+  ratioLabel: '21:9',
+  minRatio: 2.28,
+  maxRatio: 2.39,
   maxSizeInBytes: 10 * 1024 * 1024
 }
 
 const PRODUCT_DETAIL_IMAGE_RULE: ImageUploadRule = {
   purpose: 'product_detail',
   fieldLabel: '详情图',
-  minWidth: 900,
-  minHeight: 1200,
   ratioLabel: '3:4',
   minRatio: 0.72,
   maxRatio: 0.78,
@@ -603,8 +597,8 @@ const handleDialogBeforeClose: DialogBeforeCloseFn = async (done) => {
 // 上传图片
 async function handleImageUpload(options: any) {
   try {
-    await validateImageUpload(options.file, PRODUCT_MAIN_IMAGE_RULE)
-    const url = await uploadImage(options.file, PRODUCT_MAIN_IMAGE_RULE.purpose)
+    const imageDimensions = await validateImageUpload(options.file, PRODUCT_MAIN_IMAGE_RULE)
+    const url = await uploadImage(options.file, PRODUCT_MAIN_IMAGE_RULE.purpose, imageDimensions)
     uploadedImageUrls.value.push(url)
     if (!formData.value.mainImage) {
       formData.value.mainImage = url
@@ -621,8 +615,8 @@ async function handleImageUpload(options: any) {
 async function handleSpecialImageUpload(options: any, field: 'posterImage' | 'detailImage') {
   try {
     const imageRule = field === 'posterImage' ? PRODUCT_POSTER_IMAGE_RULE : PRODUCT_DETAIL_IMAGE_RULE
-    await validateImageUpload(options.file, imageRule)
-    const url = await uploadImage(options.file, imageRule.purpose)
+    const imageDimensions = await validateImageUpload(options.file, imageRule)
+    const url = await uploadImage(options.file, imageRule.purpose, imageDimensions)
     uploadedImageUrls.value.push(url)
     await deleteUploadedImageIfNeeded(formData.value[field])
     formData.value[field] = url
@@ -874,9 +868,14 @@ onBeforeUnmount(() => {
   }
 }
 
-.upload-trigger.wide {
+.poster-upload-trigger {
   width: 200px;
-  height: 100px;
+  height: 86px;
+}
+
+.detail-upload-trigger {
+  width: 150px;
+  height: 200px;
 }
 
 .sku-area {

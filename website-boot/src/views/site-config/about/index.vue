@@ -18,7 +18,7 @@
               <ElImage
                 v-if="formData.bannerImage"
                 :src="formData.bannerImage"
-                style="width: 300px; height: 150px"
+                style="width: 300px; height: 129px"
                 fit="cover"
                 :preview-src-list="[formData.bannerImage]"
                 preview-teleported
@@ -29,7 +29,7 @@
                 :show-file-list="false"
                 accept="image/*"
               >
-                <ElIcon class="upload-trigger"><Plus /></ElIcon>
+                <ElIcon class="upload-trigger banner-upload-trigger"><Plus /></ElIcon>
               </ElUpload>
               <ElIcon
                 v-if="formData.bannerImage"
@@ -39,7 +39,7 @@
                 <CircleClose />
               </ElIcon>
             </div>
-            <div class="image-tip">建议尺寸不低于 1920×600，图片比例接近 16:5</div>
+            <div class="image-tip">图片比例需接近 21:9</div>
           </ElFormItem>
         </ElForm>
 
@@ -65,7 +65,7 @@
                 :show-file-list="false"
                 accept="image/*"
               >
-                <ElIcon class="upload-trigger"><Plus /></ElIcon>
+                <ElIcon class="upload-trigger story-upload-trigger"><Plus /></ElIcon>
               </ElUpload>
               <ElIcon
                 v-if="formData.storyImage"
@@ -75,7 +75,7 @@
                 <CircleClose />
               </ElIcon>
             </div>
-            <div class="image-tip">建议尺寸不低于 800×1000，图片比例接近 4:5</div>
+            <div class="image-tip">图片比例需接近 1:1</div>
           </ElFormItem>
           <ElFormItem label="故事内容">
             <ElInput
@@ -131,7 +131,7 @@
                 :show-file-list="false"
                 accept="image/*"
               >
-                <ElIcon class="upload-trigger"><Plus /></ElIcon>
+                <ElIcon class="upload-trigger craft-upload-trigger"><Plus /></ElIcon>
               </ElUpload>
               <ElIcon
                 v-if="formData.craftImage"
@@ -141,7 +141,7 @@
                 <CircleClose />
               </ElIcon>
             </div>
-            <div class="image-tip">建议尺寸不低于 1200×800，图片比例接近 3:2</div>
+            <div class="image-tip">图片比例需接近 3:2</div>
           </ElFormItem>
           <ElFormItem label="标题">
             <ElInput v-model="formData.craftTitle" placeholder="如: HANDCRAFTED WITH CARE" />
@@ -215,8 +215,6 @@ interface StatsItem {
 interface ImageRule {
   purpose: 'site_page_banner' | 'about_story' | 'about_craft'
   fieldLabel: string
-  minWidth: number
-  minHeight: number
   ratioLabel: string
   minRatio: number
   maxRatio: number
@@ -226,26 +224,20 @@ const ABOUT_IMAGE_RULES: Record<'bannerImage' | 'storyImage' | 'craftImage', Ima
   bannerImage: {
     purpose: 'site_page_banner',
     fieldLabel: '顶部Banner图片',
-    minWidth: 1920,
-    minHeight: 600,
-    ratioLabel: '16:5',
-    minRatio: 3.1,
-    maxRatio: 3.3
+    ratioLabel: '21:9',
+    minRatio: 2.28,
+    maxRatio: 2.39
   },
   storyImage: {
     purpose: 'about_story',
     fieldLabel: '品牌故事图片',
-    minWidth: 800,
-    minHeight: 1000,
-    ratioLabel: '4:5',
-    minRatio: 0.76,
-    maxRatio: 0.84
+    ratioLabel: '1:1',
+    minRatio: 0.95,
+    maxRatio: 1.05
   },
   craftImage: {
     purpose: 'about_craft',
-    fieldLabel: '工艺展示图片',
-    minWidth: 1200,
-    minHeight: 800,
+    fieldLabel: '展示图片',
     ratioLabel: '3:2',
     minRatio: 1.45,
     maxRatio: 1.55
@@ -330,11 +322,11 @@ async function loadData() {
 async function handleImageUpload(options: any, field: 'bannerImage' | 'storyImage' | 'craftImage') {
   try {
     const imageRule = ABOUT_IMAGE_RULES[field]
-    await validateImageUpload(options.file, {
+    const imageDimensions = await validateImageUpload(options.file, {
       ...imageRule,
       maxSizeInBytes: imageRule.purpose === 'about_story' ? 6 * 1024 * 1024 : 8 * 1024 * 1024
     })
-    const url = await uploadImage(options.file, imageRule.purpose)
+    const url = await uploadImage(options.file, imageRule.purpose, imageDimensions)
     await deletePendingUploadIfNeeded(formData.value[field])
     trackPendingUpload(url)
     formData.value[field] = url
@@ -439,6 +431,21 @@ onBeforeUnmount(() => {
     border-color: #409eff;
     color: #409eff;
   }
+}
+
+.banner-upload-trigger {
+  width: 300px;
+  height: 129px;
+}
+
+.story-upload-trigger {
+  width: 200px;
+  height: 200px;
+}
+
+.craft-upload-trigger {
+  width: 300px;
+  height: 200px;
 }
 
 .image-tip {

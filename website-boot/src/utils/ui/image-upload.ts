@@ -16,8 +16,6 @@ export type AdminImageUploadPurpose =
 export interface ImageUploadRule {
   purpose: AdminImageUploadPurpose
   fieldLabel: string
-  minWidth: number
-  minHeight: number
   ratioLabel: string
   minRatio: number
   maxRatio: number
@@ -25,7 +23,7 @@ export interface ImageUploadRule {
   allowedTypes?: string[]
 }
 
-interface ImageSize {
+export interface ImageDimensions {
   width: number
   height: number
 }
@@ -39,9 +37,9 @@ export const DEFAULT_ALLOWED_IMAGE_TYPES = [
 ]
 
 /**
- * 读取图片真实尺寸，统一用于上传前做分辨率和比例校验。
+ * 读取图片真实尺寸，统一用于上传前的比例校验，并传递给后端做二次校验。
  */
-function readImageSize(file: File): Promise<ImageSize> {
+function readImageSize(file: File): Promise<ImageDimensions> {
   return new Promise((resolve, reject) => {
     const imageUrl = URL.createObjectURL(file)
     const image = new Image()
@@ -76,7 +74,7 @@ function formatFileSize(bytes: number): string {
 /**
  * 统一校验后台图片上传规则，避免各页面重复维护同类逻辑。
  */
-export async function validateImageUpload(file: File, rule: ImageUploadRule) {
+export async function validateImageUpload(file: File, rule: ImageUploadRule): Promise<ImageDimensions> {
   const allowedTypes = rule.allowedTypes?.length ? rule.allowedTypes : DEFAULT_ALLOWED_IMAGE_TYPES
   const normalizedFileType = file.type.toLowerCase()
 
@@ -89,12 +87,10 @@ export async function validateImageUpload(file: File, rule: ImageUploadRule) {
   }
 
   const { width, height } = await readImageSize(file)
-  if (width < rule.minWidth || height < rule.minHeight) {
-    throw new Error(`${rule.fieldLabel}分辨率不能低于 ${rule.minWidth}×${rule.minHeight}`)
-  }
-
   const ratio = width / height
   if (ratio < rule.minRatio || ratio > rule.maxRatio) {
     throw new Error(`${rule.fieldLabel}比例不符合要求，请上传接近 ${rule.ratioLabel} 的图片`)
   }
+
+  return { width, height }
 }
