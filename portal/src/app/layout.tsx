@@ -12,7 +12,7 @@ import AnalyticsScripts from "@/components/analytics/AnalyticsScripts";
 import TranslateProvider from "@/components/TranslateProvider";
 import { portalAPI } from "@/lib/api";
 import { buildRootMetadata } from "@/lib/seo";
-import { getSiteDisplayName, normalizeSiteConfig } from "@/lib/site-config";
+import { getSiteBaseUrl, getSiteDisplayName, normalizeSiteConfig } from "@/lib/site-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,6 +35,15 @@ export default async function RootLayout({
   const siteLogo = siteConfig?.site_logo?.trim() || "";
   const siteFavicon = siteConfig?.site_favicon?.trim() || "";
   const analyticsConfigJson = siteConfig?.analytics_config;
+  const websiteStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteName,
+    alternateName: "OSEN",
+    url: `${getSiteBaseUrl()}/`,
+  };
+  // 防止后台配置文字中的尖括号意外影响 script 标签结构。
+  const websiteStructuredDataJson = JSON.stringify(websiteStructuredData).replace(/</g, "\\u003c");
 
   let gtmId = "";
   let customBodyHtml = "";
@@ -50,6 +59,10 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: websiteStructuredDataJson }}
+        />
         {siteFavicon ? (
           <>
             <link rel="icon" href={siteFavicon} />
