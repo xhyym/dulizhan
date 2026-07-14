@@ -411,7 +411,7 @@ const { columns, columnChecks } = useTableColumns(() => [
     label: '原价',
     width: 100,
     align: 'right',
-    formatter: (row: any) => `¥${row.price}`
+    formatter: (row: any) => `$${row.price}`
   },
   // {
   //   prop: 'discountPrice',
@@ -420,7 +420,7 @@ const { columns, columnChecks } = useTableColumns(() => [
   //   align: 'right',
   //   formatter: (row: any) =>
   //     row.discountPrice
-  //       ? h('span', { style: 'color: #f56c6c' }, `¥${row.discountPrice}`)
+  //       ? h('span', { style: 'color: #f56c6c' }, `$${row.discountPrice}`)
   //       : h('span', {}, '-')
   // },
   {
