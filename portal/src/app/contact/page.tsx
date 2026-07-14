@@ -3,7 +3,6 @@ import Link from "next/link";
 import { portalAPI } from "@/lib/api";
 import { buildContactPageMetadata } from "@/lib/seo";
 import { normalizeSiteConfig, parseSocialLinks } from "@/lib/site-config";
-import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteConfig = await portalAPI.getSiteConfig().catch(() => null);
@@ -24,11 +23,6 @@ export default async function ContactPage() {
   const contactEmail = siteConfig.contact_email?.trim() || "";
   const contactWhatsapp = siteConfig.contact_whatsapp?.trim() || "";
   const activeSocialLinks = Object.entries(parseSocialLinks(siteConfig.social_links));
-  const contactBannerImage = siteConfig.contact_banner_image?.trim();
-  const optimizedContactBannerImage = buildPortalImageUrl(
-    contactBannerImage,
-    PORTAL_IMAGE_PRESETS.pageBanner
-  );
 
   const socialLabels: Record<string, string> = {
     facebook: "Facebook",
@@ -43,19 +37,7 @@ export default async function ContactPage() {
     <>
       {/* Banner */}
       <section className="relative h-[40vh] min-h-[300px] flex items-center justify-center">
-        {contactBannerImage ? (
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `
-                linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.4)),
-                url(${optimizedContactBannerImage}) center/cover no-repeat
-              `,
-            }}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-[#1a1a1a]" />
-        )}
+        <div className="absolute inset-0 bg-[#1a1a1a]" />
         <div className="relative z-10 text-center text-white">
           <p className="text-sm font-light tracking-wider mb-2">
             <Link href="/" className="hover:opacity-80">Home</Link> &gt; Contact

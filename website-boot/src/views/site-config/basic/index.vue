@@ -63,7 +63,11 @@
 
         <ElFormItem label="Title Logo">
           <div class="upload-row">
-            <ElUpload :http-request="handleFaviconUpload" :show-file-list="false" accept="image/*">
+            <ElUpload
+              :http-request="handleFaviconUpload"
+              :show-file-list="false"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml,.svg"
+            >
               <div class="upload-box favicon-box">
                 <ElImage
                   v-if="formData.site_favicon"
@@ -86,32 +90,32 @@
               @click="handleDeleteFavicon"
             />
           </div>
-          <div class="upload-tip">图片比例需接近 1:1</div>
+          <div class="upload-tip">支持 JPG、PNG、GIF、WEBP、SVG；位图比例需接近 1:1</div>
         </ElFormItem>
 
-        <ElFormItem label="Contact背景图">
+        <ElFormItem label="Shop背景图">
           <div class="upload-row">
-            <ElUpload :http-request="handleContactBannerUpload" :show-file-list="false" accept="image/*">
+            <ElUpload :http-request="handleProductsBannerUpload" :show-file-list="false" accept="image/*">
               <div class="upload-box banner-box">
                 <ElImage
-                  v-if="formData.contact_banner_image"
-                  :src="formData.contact_banner_image"
+                  v-if="formData.products_banner_image"
+                  :src="formData.products_banner_image"
                   class="upload-image"
                   fit="cover"
                 />
                 <div v-else class="upload-placeholder">
                   <ElIcon class="upload-placeholder-icon"><Picture /></ElIcon>
-                  <span>点击上传 Contact 背景图</span>
+                  <span>点击上传 Shop 背景图</span>
                 </div>
               </div>
             </ElUpload>
             <ElButton
-              v-if="formData.contact_banner_image"
+              v-if="formData.products_banner_image"
               type="danger"
               size="small"
               :icon="Delete"
               circle
-              @click="handleDeleteContactBanner"
+              @click="handleDeleteProductsBanner"
             />
           </div>
           <div class="upload-tip">图片比例需接近 21:9</div>
@@ -138,7 +142,11 @@ import { ElMessage } from 'element-plus'
 import { Delete, Picture } from '@element-plus/icons-vue'
 import { fetchGetSiteConfig, fetchUpdateSiteConfig } from '@/api/site-config'
 import { deleteImage, uploadImage } from '@/api/upload'
-import { validateImageUpload, type ImageUploadRule } from '@/utils/ui/image-upload'
+import {
+  DEFAULT_ALLOWED_IMAGE_TYPES,
+  validateImageUpload,
+  type ImageUploadRule
+} from '@/utils/ui/image-upload'
 
 defineOptions({ name: 'SiteBasic' })
 
@@ -147,7 +155,7 @@ const saving = ref(false)
 type ManagedImageField =
   | 'site_logo'
   | 'site_favicon'
-  | 'contact_banner_image'
+  | 'products_banner_image'
 
 const SITE_LOGO_RULE: ImageUploadRule = {
   purpose: 'site_logo',
@@ -164,12 +172,14 @@ const SITE_FAVICON_RULE: ImageUploadRule = {
   ratioLabel: '1:1',
   minRatio: 0.95,
   maxRatio: 1.05,
-  maxSizeInBytes: 2 * 1024 * 1024
+  maxSizeInBytes: 2 * 1024 * 1024,
+  allowedTypes: [...DEFAULT_ALLOWED_IMAGE_TYPES, 'image/svg+xml'],
+  skipRatioValidationForSvg: true
 }
 
 const PAGE_BANNER_RULE: ImageUploadRule = {
   purpose: 'site_page_banner',
-  fieldLabel: 'Contact背景图',
+  fieldLabel: 'Shop背景图',
   ratioLabel: '21:9',
   minRatio: 2.28,
   maxRatio: 2.39,
@@ -183,7 +193,7 @@ const formData = ref({
   hero_subtitle: '',
   site_logo: '',
   site_favicon: '',
-  contact_banner_image: '',
+  products_banner_image: '',
   contact_email: '',
   contact_whatsapp: '',
   notification_email: ''
@@ -278,12 +288,12 @@ async function handleFaviconUpload(options: any) {
   }
 }
 
-async function handleContactBannerUpload(options: any) {
+async function handleProductsBannerUpload(options: any) {
   try {
     const imageDimensions = await validateImageUpload(options.file, PAGE_BANNER_RULE)
     const fileUrl = await uploadImage(options.file, PAGE_BANNER_RULE.purpose, imageDimensions)
-    await replaceManagedImage('contact_banner_image', fileUrl)
-    ElMessage.success('Contact背景图上传成功')
+    await replaceManagedImage('products_banner_image', fileUrl)
+    ElMessage.success('Shop背景图上传成功')
   } catch (e: any) {
     ElMessage.error(e.message || '上传失败')
   }
@@ -297,8 +307,8 @@ async function handleDeleteFavicon() {
   await clearManagedImage('site_favicon', 'Title Logo 已删除')
 }
 
-async function handleDeleteContactBanner() {
-  await clearManagedImage('contact_banner_image', 'Contact背景图已删除')
+async function handleDeleteProductsBanner() {
+  await clearManagedImage('products_banner_image', 'Shop背景图已删除')
 }
 
 async function handleSave() {
@@ -306,8 +316,8 @@ async function handleSave() {
   try {
     await fetchUpdateSiteConfig({
       ...formData.value,
-      products_banner_image: '',
-      about_banner_image: ''
+      about_banner_image: '',
+      contact_banner_image: ''
     })
     pendingUploadUrls.value = []
     ElMessage.success('保存成功')

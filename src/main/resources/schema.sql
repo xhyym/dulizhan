@@ -345,6 +345,7 @@ INSERT INTO `t_site_config` (`config_key`, `config_value`, `description`) VALUES
 ('site_title', '"Indie Station"', '网站标题'),
 ('site_logo', '""', '网站Logo'),
 ('banner_images', '[]', '首页轮播图(JSON数组)'),
+('products_banner_image', '""', 'Shop页面背景图'),
 ('footer_info', '{"copyright":"","links":[]}', '底部信息'),
 ('contact_email', '""', '联系邮箱'),
 ('contact_whatsapp', '""', '联系WhatsApp'),

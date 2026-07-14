@@ -21,6 +21,7 @@ export interface ImageUploadRule {
   maxRatio: number
   maxSizeInBytes: number
   allowedTypes?: string[]
+  skipRatioValidationForSvg?: boolean
 }
 
 export interface ImageDimensions {
@@ -84,6 +85,11 @@ export async function validateImageUpload(file: File, rule: ImageUploadRule): Pr
 
   if (file.size > rule.maxSizeInBytes) {
     throw new Error(`${rule.fieldLabel}大小不能超过 ${formatFileSize(rule.maxSizeInBytes)}`)
+  }
+
+  // SVG 为矢量格式，未声明固定尺寸时浏览器无法提供可靠的像素宽高。
+  if (normalizedFileType === 'image/svg+xml' && rule.skipRatioValidationForSvg) {
+    return { width: 1, height: 1 }
   }
 
   const { width, height } = await readImageSize(file)

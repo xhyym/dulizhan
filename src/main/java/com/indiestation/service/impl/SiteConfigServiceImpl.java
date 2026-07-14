@@ -61,7 +61,7 @@ public class SiteConfigServiceImpl extends ServiceImpl<SiteConfigMapper, SiteCon
         add("hero_subtitle");
         add("banner_images");
         add("featured_category_ids");
-        add("contact_banner_image");
+        add("products_banner_image");
         add("footer_info");
         add("social_links");
         add("seo_config");

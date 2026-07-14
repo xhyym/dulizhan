@@ -69,7 +69,7 @@ public class R2ServiceImpl implements R2Service {
         }
 
         // 校验文件类型
-        if (!isAllowedContentType(contentType)) {
+        if (!isAllowedContentType(contentType, purpose)) {
             throw new BusinessException("不支持的文件类型: " + contentType);
         }
 
@@ -157,6 +157,7 @@ public class R2ServiceImpl implements R2Service {
             case "image/png" -> "png";
             case "image/gif" -> "gif";
             case "image/webp" -> "webp";
+            case "image/svg+xml" -> "svg";
             case "application/pdf" -> "pdf";
             default -> "bin";
         };
@@ -165,11 +166,14 @@ public class R2ServiceImpl implements R2Service {
     /**
      * 校验是否允许的文件类型
      */
-    private boolean isAllowedContentType(String contentType) {
+    private boolean isAllowedContentType(String contentType, AdminUploadPurpose purpose) {
         if (contentType == null) return false;
         String lower = contentType.toLowerCase();
         for (String type : ALLOWED_IMAGE_TYPES) {
             if (type.equals(lower)) return true;
+        }
+        if ("image/svg+xml".equals(lower) && purpose == AdminUploadPurpose.SITE_FAVICON) {
+            return true;
         }
         // 也允许 PDF
         return "application/pdf".equals(lower);
@@ -206,6 +210,12 @@ public class R2ServiceImpl implements R2Service {
             throw new BusinessException(String.format("%s大小不能超过 %dMB",
                     purpose.getLabel(),
                     purpose.getMaxFileSize() / 1024 / 1024));
+        }
+
+        // Title Logo 支持 SVG 矢量图，未声明尺寸的 SVG 无法可靠读取像素比例。
+        if ("image/svg+xml".equalsIgnoreCase(contentType)
+                && purpose == AdminUploadPurpose.SITE_FAVICON) {
+            return;
         }
 
         if (imageWidth == null || imageHeight == null || imageWidth <= 0 || imageHeight <= 0) {

@@ -68,6 +68,7 @@ export default async function ProductsPage({
   };
   const pageBannerContent = await PageBanner({
     title: "Our Collection",
+    imageKey: "products_banner_image",
     breadcrumbs: [
       { label: "Home", href: "/" },
       { label: "Shop" },
