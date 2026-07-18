@@ -33,7 +33,6 @@ export default async function RootLayout({
   const siteConfig = normalizeSiteConfig(siteConfigResponse);
   const siteName = getSiteDisplayName(siteConfig);
   const siteLogo = siteConfig?.site_logo?.trim() || "";
-  const siteFavicon = siteConfig?.site_favicon?.trim() || "";
   const analyticsConfigJson = siteConfig?.analytics_config;
   const websiteStructuredData = {
     "@context": "https://schema.org",
@@ -63,13 +62,6 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: websiteStructuredDataJson }}
         />
-        {siteFavicon ? (
-          <>
-            <link rel="icon" href={siteFavicon} />
-            <link rel="shortcut icon" href={siteFavicon} />
-            <link rel="apple-touch-icon" href={siteFavicon} />
-          </>
-        ) : null}
         <AnalyticsScripts configJson={analyticsConfigJson} />
       </head>
       <body className="min-h-full flex flex-col">

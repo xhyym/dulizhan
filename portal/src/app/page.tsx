@@ -80,9 +80,6 @@ export default async function HomePage() {
 
   // 后台未配置轮播图时，HeroCarousel 使用纯色背景和默认文案继续展示。
   const bannerImages = parseBannerImages(safeSiteConfig.banner_images);
-  const optimizedBannerImages = bannerImages.map((image) =>
-    buildPortalImageUrl(image, PORTAL_IMAGE_PRESETS.heroBanner)
-  );
 
   // 解析首页文案
   const heroTagline = safeSiteConfig.hero_tagline;
@@ -98,7 +95,7 @@ export default async function HomePage() {
   return (
     <>
       <HeroCarousel
-        images={optimizedBannerImages}
+        images={bannerImages}
         tagline={heroTagline}
         title={heroTitle}
         subtitle={heroSubtitle}
@@ -134,7 +131,7 @@ export default async function HomePage() {
       <section className="py-20 md:py-30 px-4 md:px-15">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 max-w-[1200px] mx-auto items-center">
           {storyImage ? (
-            <div className="aspect-[4/5] overflow-hidden">
+            <div className="aspect-square overflow-hidden">
               <img
                 src={buildPortalImageUrl(storyImage, PORTAL_IMAGE_PRESETS.sectionImage)}
                 srcSet={buildPortalImageSrcSet(storyImage, [720, 1200, 1600], {
@@ -148,7 +145,7 @@ export default async function HomePage() {
               />
             </div>
           ) : (
-            <div className="aspect-[4/5] bg-surface" aria-hidden="true" />
+            <div className="aspect-square bg-surface" aria-hidden="true" />
           )}
           <div>
             <h2 className="text-2xl md:text-3xl font-light tracking-[6px] uppercase mb-6 text-left">

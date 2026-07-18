@@ -103,13 +103,15 @@ export function buildRootMetadata(siteConfig: Record<string, string>): Metadata 
     title: siteName,
     description: normalizeText(seoConfig.home_description || DEFAULT_HOME_DESCRIPTION),
     keywords: uniqueKeywords(keywords),
-    icons: favicon
-      ? {
-          icon: favicon,
-          shortcut: favicon,
-          apple: favicon,
-        }
-      : undefined,
+    icons: {
+      // SVG 保持为现代浏览器的首选图标，PNG/ICO 为搜索、移动端和旧浏览器提供主域名回退。
+      icon: [
+        ...(favicon ? [{ url: favicon }] : []),
+        { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      ],
+      shortcut: { url: "/favicon.ico", type: "image/x-icon" },
+      apple: { url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" },
+    },
     openGraph: {
       title: siteName,
       description: normalizeText(seoConfig.home_description || DEFAULT_HOME_DESCRIPTION),

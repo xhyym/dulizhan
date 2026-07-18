@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Category } from "@/lib/api";
@@ -9,7 +8,11 @@ import {
   MARQUEE_SPEED_PX_PER_SECOND,
   normalizeMarqueeOffset,
 } from "@/lib/category-marquee-motion";
-import { buildPortalImageUrl, PORTAL_IMAGE_PRESETS } from "@/lib/image-url";
+import {
+  buildPortalImageSrcSet,
+  buildPortalImageUrl,
+  PORTAL_IMAGE_PRESETS,
+} from "@/lib/image-url";
 
 export default function CategoryMarquee({ categories }: { categories: Category[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -136,7 +139,7 @@ export default function CategoryMarquee({ categories }: { categories: Category[]
 function CategoryCard({ category }: { category: Category }) {
   if (!category.image) {
     return (
-      <div className="flex-shrink-0 w-[220px] h-[280px] md:w-[300px] md:h-[400px] mx-2 md:mx-3 bg-red-50 flex items-center justify-center rounded">
+      <div className="flex-shrink-0 w-[210px] h-[280px] md:w-[300px] md:h-[400px] mx-2 md:mx-3 bg-red-50 flex items-center justify-center rounded">
         <p className="text-red-500 text-xs text-center px-4">
           分类「{category.name}」未配置图片
         </p>
@@ -147,14 +150,20 @@ function CategoryCard({ category }: { category: Category }) {
   return (
     <Link
       href={`/products?category=${category.id}`}
-      className="flex-shrink-0 w-[220px] h-[280px] md:w-[300px] md:h-[400px] mx-2 md:mx-3 relative overflow-hidden group/card cursor-pointer rounded transition-transform duration-300 hover:scale-[1.03]"
+      className="flex-shrink-0 w-[210px] h-[280px] md:w-[300px] md:h-[400px] mx-2 md:mx-3 relative overflow-hidden group/card cursor-pointer rounded transition-transform duration-300 hover:scale-[1.03]"
     >
-      <Image
+      <img
         src={buildPortalImageUrl(category.image, PORTAL_IMAGE_PRESETS.categoryCard)}
+        srcSet={buildPortalImageSrcSet(category.image, [240, 420, 600, 720], {
+          quality: PORTAL_IMAGE_PRESETS.categoryCard.quality,
+        })}
+        sizes="(max-width: 768px) 210px, 300px"
+        width={300}
+        height={400}
         alt={category.name}
-        fill
-        unoptimized
         className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-110"
+        loading="lazy"
+        decoding="async"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex flex-col justify-end p-6">
         <span className="text-white text-lg font-normal tracking-widest uppercase">

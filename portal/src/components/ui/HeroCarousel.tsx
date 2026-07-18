@@ -6,6 +6,11 @@ import {
   resolveSwipeAction,
   shouldTreatAsHorizontalDrag,
 } from "@/lib/hero-carousel-gesture";
+import {
+  buildPortalImageSrcSet,
+  buildPortalImageUrl,
+  PORTAL_IMAGE_PRESETS,
+} from "@/lib/image-url";
 
 interface HeroCarouselProps {
   images: string[];
@@ -130,15 +135,23 @@ export default function HeroCarousel({ images, tagline, title, subtitle }: HeroC
             className="absolute inset-0 transition-opacity duration-1000"
             style={{
               opacity: i === current ? 1 : 0,
-              background: `
-                linear-gradient(to right, rgba(0,0,0,0.3), rgba(0,0,0,0.1)),
-                linear-gradient(to left, rgba(0,0,0,0.3), rgba(0,0,0,0.1)),
-                linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.1)),
-                linear-gradient(to top, rgba(0,0,0,0.4), rgba(0,0,0,0.1)),
-                url(${img}) center/cover no-repeat
-              `,
             }}
-          />
+          >
+            <img
+              src={buildPortalImageUrl(img, PORTAL_IMAGE_PRESETS.heroBanner)}
+              srcSet={buildPortalImageSrcSet(img, [640, 960, 1440, 1920], {
+                quality: PORTAL_IMAGE_PRESETS.heroBanner.quality,
+              })}
+              sizes="100vw"
+              alt=""
+              aria-hidden="true"
+              className="h-full w-full object-cover"
+              loading={i === 0 ? "eager" : "lazy"}
+              fetchPriority={i === 0 ? "high" : "auto"}
+              decoding="async"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.3),rgba(0,0,0,0.1)),linear-gradient(to_left,rgba(0,0,0,0.3),rgba(0,0,0,0.1)),linear-gradient(to_bottom,rgba(0,0,0,0.2),rgba(0,0,0,0.1)),linear-gradient(to_top,rgba(0,0,0,0.4),rgba(0,0,0,0.1))]" />
+          </div>
         ))
       ) : (
         <div className="absolute inset-0 bg-[#1a1a1a]" />
